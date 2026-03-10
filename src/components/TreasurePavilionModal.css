@@ -66,13 +66,12 @@
 }
 
 .shop-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
+  gap: 3px;
   margin-bottom: 0.75rem;
 }
 
 .shop-slot {
+  position: relative;
   aspect-ratio: 1;
   background: var(--slot-bg);
   border: 2px solid var(--slot-border);
@@ -133,8 +132,9 @@
 }
 
 .shop-item-name {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: var(--ink);
+  max-width: 100%;
 }
 
 .shop-item-price {
@@ -145,6 +145,11 @@
 .shop-slot .shop-pill-portrait {
   max-width: 36px;
   max-height: 36px;
+}
+
+.shop-slot .shop-equip-portrait {
+  width: 26px;
+  height: 26px;
 }
 
 .shop-refresh-row {
@@ -219,6 +224,11 @@
   max-height: 40px;
 }
 
+.sell-preview .sell-equip-portrait {
+  width: 34px;
+  height: 34px;
+}
+
 .sell-item-name {
   font-size: 0.9rem;
   color: var(--ink);
@@ -244,25 +254,12 @@
 }
 
 .treasure-inv-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(6, 1fr);
   gap: 3px;
-  aspect-ratio: 5 / 6;
-  min-height: 140px;
   width: 100%;
   max-width: 256px;
 }
 
 .treasure-inv-slot {
-  position: relative;
-  background: var(--slot-bg);
-  border: 2px solid var(--slot-border);
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
   cursor: default;
 }
 
@@ -285,15 +282,7 @@
 }
 
 .treasure-inv-slot .item-preview {
-  font-size: 0.6rem;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-  padding: 0 2px;
   flex-shrink: 0;
-  min-height: 1em;
 }
 
 .treasure-inv-slot .item-count {

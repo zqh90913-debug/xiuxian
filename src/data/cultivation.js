@@ -16,11 +16,14 @@ export const BASE_CULTIVATION_GAIN = 10
 // 每层境界的修为 gain 倍率（突破后修炼更快）
 export const CULTIVATION_GAIN_MULTIPLIER = 1.15
 
-// 突破到下一层所需修为的基数
+// 突破到下一层所需修为的基数（练气一层）
 export const BREAKTHROUGH_BASE = 100
 
-// 突破倍率：每提升一层，所需修为大幅增加
-export const BREAKTHROUGH_MULTIPLIER = 2.2
+// 小境界突破倍率：同一大境界内，每升一层修为需求略微提升
+export const SMALL_BREAKTHROUGH_MULTIPLIER = 1.3
+
+// 大境界突破倍率：每提升一个大境界，所需修为大幅提升
+export const REALM_BREAKTHROUGH_MULTIPLIER = 8
 
 /**
  * 计算当前层级的修炼获得修为
@@ -40,8 +43,11 @@ export function getCultivationGain(realmIndex, layer) {
  * @returns {number}
  */
 export function getBreakthroughRequired(realmIndex, layer) {
-  const totalLayers = realmIndex * LAYERS_PER_REALM + layer
-  return Math.floor(BREAKTHROUGH_BASE * Math.pow(BREAKTHROUGH_MULTIPLIER, totalLayers))
+  // 大境界基数：随境界跃迁成倍增加
+  const realmBase = BREAKTHROUGH_BASE * Math.pow(REALM_BREAKTHROUGH_MULTIPLIER, realmIndex)
+  // 小境界：同一境界内，每层只做小幅增加
+  const layerMul = Math.pow(SMALL_BREAKTHROUGH_MULTIPLIER, layer - 1)
+  return Math.floor(realmBase * layerMul)
 }
 
 /**

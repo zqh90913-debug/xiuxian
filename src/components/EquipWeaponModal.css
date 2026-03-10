@@ -26,6 +26,12 @@
   text-align: center;
 }
 
+.equip-modal-portrait {
+  display: flex;
+  justify-content: center;
+  margin: -0.35rem 0 0.65rem;
+}
+
 .weapon-name {
   font-size: 1.1rem;
   text-align: center;

@@ -11,6 +11,9 @@ import {
   ITEM_TYPES,
 } from '../data/items'
 import PillPortrait from './PillPortrait'
+import EquipmentPortrait from './EquipmentPortrait'
+import FurnacePortrait from './FurnacePortrait'
+import { MATERIAL_SHOP_COUNT } from '../data/items'
 import './TreasurePavilionModal.css'
 
 const COLS = 5
@@ -93,31 +96,50 @@ export default function TreasurePavilionModal({
 
         <div className="treasure-shop-section gu-panel">
           <h4>商店</h4>
-          <div className="shop-grid">
+          <div
+            className="shop-grid inventory-grid"
+            style={{ '--cols': 3, '--rows': 2 }}
+          >
             {Array.from({ length: SHOP_SLOTS }, (_, i) => {
               const itemId = shopItems[i]
               if (!itemId) {
-                return <div key={`empty-${i}`} className="shop-slot empty" />
+                return <div key={`empty-${i}`} className="inv-slot shop-slot empty" />
               }
               const item = getItemById(itemId)
-              if (!item) return <div key={i} className="shop-slot empty" />
+              if (!item) return <div key={i} className="inv-slot shop-slot empty" />
               const price = getItemBuyPrice(itemId)
               const canBuy = (spiritStones ?? 0) >= price
               const selected = itemToBuy?.itemId === itemId
               const isPill = item.type === ITEM_TYPES.PILL
+              const isMaterial = item.type === ITEM_TYPES.MATERIAL
+              const isFurnace = item.type === ITEM_TYPES.FURNACE
+              const isRecipe = item.type === ITEM_TYPES.RECIPE
+              const isEquip = item.type === ITEM_TYPES.WEAPON || item.type === ITEM_TYPES.ARMOR
+              const borderColor = item.grade != null ? getPillGradeColor(item.grade) : (item.tier != null ? getPillGradeColor(item.tier) : (item.pillId ? getPillGradeColor(getItemById(item.pillId)?.grade) : undefined))
               return (
                 <div
                   key={itemId}
-                  className={`shop-slot has-item ${canBuy ? 'can-buy' : ''} ${selected ? 'selected' : ''}`}
-                  style={{ borderColor: getPillGradeColor(item.grade) }}
+                  className={`inv-slot shop-slot has-item ${canBuy ? 'can-buy' : ''} ${selected ? 'selected' : ''}`}
+                  style={{ borderColor: borderColor || 'var(--slot-border)' }}
                   onClick={() => canBuy && handleSelectBuy(itemId)}
                 >
-                  {isPill ? (
+                  {isPill && (
                     <PillPortrait itemId={itemId} grade={item.grade} className="shop-pill-portrait" />
-                  ) : (
-                    <span className="shop-item-type-tag">{item.type === ITEM_TYPES.WEAPON ? '法宝' : '防具'}</span>
                   )}
-                  <span className="shop-item-name">{item.name}</span>
+                  {isEquip && (
+                    <EquipmentPortrait itemId={itemId} className="shop-equip-portrait" />
+                  )}
+                  {isFurnace && (
+                    <FurnacePortrait itemId={itemId} className="shop-equip-portrait" />
+                  )}
+                  {!isPill && (
+                    <span className="shop-item-type-tag">
+                      {item.type === ITEM_TYPES.WEAPON ? '法宝' : item.type === ITEM_TYPES.ARMOR ? '防具' : item.type === ITEM_TYPES.MATERIAL ? `材料×${MATERIAL_SHOP_COUNT}` : item.type === ITEM_TYPES.FURNACE ? '丹炉' : '丹方'}
+                    </span>
+                  )}
+                  <span className="item-preview shop-item-name" title={item.name}>
+                    {item.name}
+                  </span>
                   <span className="shop-item-price">{price.toLocaleString()}</span>
                 </div>
               )
@@ -150,7 +172,12 @@ export default function TreasurePavilionModal({
           >
             {itemToSell ? (
               <div className="sell-preview">
-                <PillPortrait itemId={itemToSell.itemId} className="sell-pill-portrait" />
+                {(() => {
+                  const it = getItemById(itemToSell.itemId)
+                  if (it?.type === ITEM_TYPES.PILL) return <PillPortrait itemId={itemToSell.itemId} className="sell-pill-portrait" />
+                  if (it?.type === ITEM_TYPES.WEAPON || it?.type === ITEM_TYPES.ARMOR) return <EquipmentPortrait itemId={itemToSell.itemId} className="sell-equip-portrait" />
+                  return null
+                })()}
                 <span className="sell-item-name">
                   {getItemById(itemToSell.itemId)?.name ?? itemToSell.itemId}
                 </span>
@@ -179,18 +206,21 @@ export default function TreasurePavilionModal({
 
         <div className="treasure-inventory-section gu-panel">
           <h4>背包</h4>
-          <div className="treasure-inv-grid">
+          <div
+            className="treasure-inv-grid inventory-grid"
+            style={{ '--cols': 5, '--rows': 6 }}
+          >
             {Array.from({ length: SLOTS_PER_PAGE }, (_, i) => {
               const stack = pageStacks[i]
               if (!stack) {
-                return <div key={i} className="treasure-inv-slot" />
+                return <div key={i} className="inv-slot treasure-inv-slot" />
               }
               const item = getItemById(stack.itemId)
               const isPill = item?.type === ITEM_TYPES.PILL
               return (
                 <div
                   key={`${stack.itemId}-${i}`}
-                  className={`treasure-inv-slot has-item ${isPill ? 'pill' : ''}`}
+                  className={`inv-slot treasure-inv-slot has-item ${isPill ? 'pill' : ''}`}
                   style={isPill ? { borderColor: getPillGradeColor(item.grade) } : undefined}
                   draggable
                   onDragStart={(e) => handleDragStart(e, stack)}

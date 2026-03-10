@@ -1,0 +1,165 @@
+.tech-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--app-bg, #1b120a);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 100;
+  padding: 0.75rem;
+}
+
+.tech-modal {
+  background: var(--wood-dark);
+  border: 2px solid var(--slot-border);
+  border-radius: 4px;
+  max-width: 880px;
+  width: 100%;
+  max-height: calc(100vh - 1.5rem);
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.tech-modal-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.tech-modal-header h3 {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.3rem;
+  color: var(--gold);
+}
+
+.tech-modal-header .btn-close {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.tech-section {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.75rem;
+}
+
+.tech-section h4 {
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.4rem;
+}
+
+.tech-empty {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.tech-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tech-card {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  padding: 0.4rem 0.5rem;
+}
+
+.tech-card.selectable {
+  border: 1px solid rgba(201, 162, 39, 0.4);
+}
+
+.tech-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+
+.tech-name {
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.tech-badge {
+  display: inline-flex;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.tech-badge .tier {
+  color: var(--gold);
+}
+
+.tech-badge .grade {
+  color: var(--ink-muted);
+}
+
+.tech-desc {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.tech-scroll {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.tech-scroll .tech-card {
+  min-width: 160px;
+  max-width: 200px;
+}
+
+.btn-learn {
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  border-radius: 2px;
+  border: 1px solid var(--slot-border);
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+}
+
+.tech-learn-confirm {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.tech-learn-prompt {
+  font-size: 0.95rem;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.tech-learn-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.tech-learn-actions .btn-cancel {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  background: var(--slot-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.tech-learn-actions .btn-confirm-learn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+

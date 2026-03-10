@@ -15,8 +15,20 @@ import BreakthroughModal from './components/BreakthroughModal'
 import EquipmentPanel from './components/EquipmentPanel'
 import InventoryPanel from './components/InventoryPanel'
 import TreasurePavilionModal from './components/TreasurePavilionModal'
+import TechniquePavilionModal from './components/TechniquePavilionModal'
+import AlchemyRoomModal from './components/AlchemyRoomModal'
+import { INITIAL_AVAILABLE_TECHNIQUES, getTechniqueById } from './data/techniques'
+import {
+  INITIAL_OWNED_RECIPES,
+  INITIAL_OWNED_FURNACES,
+  getRecipe,
+  getCraftSuccessRate,
+  getCraftResultCount,
+  canCraftWithInventory,
+  deductCraftMaterials,
+} from './data/alchemy'
 import RedeemCodeModal from './components/RedeemCodeModal'
-import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, SHOP_ITEM_IDS, WEAPON_IDS, getWeaponAttackBonus } from './data/items'
+import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, removeFromInventory, SHOP_ITEM_IDS, WEAPON_IDS, getWeaponAttackBonus, getPillCultivationGain, getArmorHpBonus, ITEM_TYPES, MATERIAL_SHOP_COUNT } from './data/items'
 import './App.css'
 
 const CULTIVATION_DURATION_MS = 10000
@@ -37,7 +49,16 @@ function pickRandomWeapons(count) {
 }
 
 function normalizeEquipmentWeapons(w) {
-  const arr = [...(w ?? []), ...Array(5).fill(null)].slice(0, 5)
+  const arr = [...(w ?? []), ...Array(4).fill(null)].slice(0, 4)
+  return arr.map((slot) => {
+    if (!slot) return null
+    if (slot?.itemId) return { itemId: slot.itemId }
+    return null
+  })
+}
+
+function normalizeEquipmentArmors(a) {
+  const arr = [...(a ?? []), ...Array(4).fill(null)].slice(0, 4)
   return arr.map((slot) => {
     if (!slot) return null
     if (slot?.itemId) return { itemId: slot.itemId }
@@ -57,7 +78,7 @@ function loadSave() {
           cultivation: data.cultivation,
           equipment: {
             weapons: normalizeEquipmentWeapons(data.equipment?.weapons),
-            armors: [...(data.equipment?.armors ?? []), ...Array(5).fill(null)].slice(0, 5),
+            armors: normalizeEquipmentArmors(data.equipment?.armors),
           },
           inventory: normalizeInventory(data.inventory ?? {}),
           bigRealmBreakCount: data.bigRealmBreakCount ?? 0,
@@ -65,6 +86,12 @@ function loadSave() {
           pillSuccessBonus: data.pillSuccessBonus ?? {},
           shopLastRefreshTime: data.shopLastRefreshTime ?? 0,
           shopItems: Array.isArray(data.shopItems) ? data.shopItems : pickRandomShopItems(SHOP_SLOTS),
+          learnedTechs: Array.isArray(data.learnedTechs) ? data.learnedTechs : [],
+          availableTechs: Array.isArray(data.availableTechs) ? data.availableTechs : INITIAL_AVAILABLE_TECHNIQUES,
+          ownedRecipes: Array.isArray(data.ownedRecipes) ? data.ownedRecipes : INITIAL_OWNED_RECIPES,
+          learnedRecipes: [], // 已去除全部可炼制丹药，不再从存档恢复
+          ownedFurnaces: Array.isArray(data.ownedFurnaces) ? data.ownedFurnaces : INITIAL_OWNED_FURNACES,
+          equippedFurnaceId: data.equippedFurnaceId ?? null,
         }
       }
     }
@@ -73,13 +100,19 @@ function loadSave() {
     realmIndex: 0,
     layer: 1,
     cultivation: 0,
-    equipment: { weapons: normalizeEquipmentWeapons([]), armors: Array(5).fill(null) },
+    equipment: { weapons: normalizeEquipmentWeapons([]), armors: normalizeEquipmentArmors([]) },
     inventory: {},
     bigRealmBreakCount: 0,
     spiritStones: 0,
     pillSuccessBonus: {},
     shopLastRefreshTime: Date.now(),
     shopItems: pickRandomShopItems(SHOP_SLOTS),
+    learnedTechs: [],
+    availableTechs: INITIAL_AVAILABLE_TECHNIQUES,
+    ownedRecipes: INITIAL_OWNED_RECIPES,
+    learnedRecipes: [],
+    ownedFurnaces: INITIAL_OWNED_FURNACES,
+    equippedFurnaceId: null,
   }
 }
 
@@ -89,13 +122,19 @@ function saveGame(state) {
       realmIndex: state.realmIndex,
       layer: state.layer,
       cultivation: state.cultivation,
-      equipment: state.equipment ?? { weapons: Array(5).fill(null), armors: Array(5).fill(null) },
+      equipment: state.equipment ?? { weapons: normalizeEquipmentWeapons([]), armors: normalizeEquipmentArmors([]) },
       inventory: state.inventory ?? {},
       bigRealmBreakCount: state.bigRealmBreakCount ?? 0,
       spiritStones: state.spiritStones ?? 0,
       pillSuccessBonus: state.pillSuccessBonus ?? {},
       shopLastRefreshTime: state.shopLastRefreshTime ?? 0,
       shopItems: state.shopItems ?? [],
+      learnedTechs: state.learnedTechs ?? [],
+      availableTechs: state.availableTechs ?? INITIAL_AVAILABLE_TECHNIQUES,
+      ownedRecipes: state.ownedRecipes ?? INITIAL_OWNED_RECIPES,
+      learnedRecipes: state.learnedRecipes ?? [],
+      ownedFurnaces: state.ownedFurnaces ?? INITIAL_OWNED_FURNACES,
+      equippedFurnaceId: state.equippedFurnaceId ?? null,
     }))
   } catch (_) {}
 }
@@ -107,6 +146,8 @@ function App() {
   const [showBreakthrough, setShowBreakthrough] = useState(false)
   const [showTreasurePavilion, setShowTreasurePavilion] = useState(false)
   const [showRedeemCode, setShowRedeemCode] = useState(false)
+  const [showTechniquePavilion, setShowTechniquePavilion] = useState(false)
+  const [showAlchemyRoom, setShowAlchemyRoom] = useState(false)
   const [breakthroughFailed, setBreakthroughFailed] = useState(false)
   const [lastGain, setLastGain] = useState(0)
   const [autoCultivate, setAutoCultivate] = useState(() => {
@@ -130,7 +171,7 @@ function App() {
     } catch (_) {}
   }, [autoCultivate])
 
-  const { realmIndex, layer, cultivation, equipment, inventory, bigRealmBreakCount, spiritStones, pillSuccessBonus, shopLastRefreshTime, shopItems } = state
+  const { realmIndex, layer, cultivation, equipment, inventory, bigRealmBreakCount, spiritStones, pillSuccessBonus, shopLastRefreshTime, shopItems, learnedTechs = [], availableTechs = INITIAL_AVAILABLE_TECHNIQUES, ownedRecipes = INITIAL_OWNED_RECIPES, learnedRecipes = [], ownedFurnaces = INITIAL_OWNED_FURNACES, equippedFurnaceId = null, lastCraftResult = null } = state
   const isMaxRealm = realmIndex === REALMS.length - 1 && layer === LAYERS_PER_REALM
 
   const required = isMaxRealm
@@ -140,12 +181,20 @@ function App() {
       : getBreakthroughRequired(realmIndex, layer + 1)
   const canBreakthrough = cultivation >= required && !isMaxRealm
 
-  const gainPerCycle = getCultivationGain(realmIndex, layer)
+  const techniqueBonus = (learnedTechs ?? [])
+    .map((id) => getTechniqueById(id))
+    .filter(Boolean)
+    .reduce((sum, t) => sum + (t.cultivationBonus ?? 0), 0)
+
+  const gainPerCycle = getCultivationGain(realmIndex, layer) + techniqueBonus
   const equipmentAttackBonus = (equipment?.weapons ?? [])
     .filter(Boolean)
     .reduce((sum, s) => sum + getWeaponAttackBonus(s.itemId), 0)
   const attack = getAttack(realmIndex, layer, equipmentAttackBonus)
-  const hp = getHp(realmIndex, layer)
+  const armorHpBonus = (equipment?.armors ?? [])
+    .filter(Boolean)
+    .reduce((sum, s) => sum + (getArmorHpBonus ? getArmorHpBonus(s.itemId) : 0), 0)
+  const hp = getHp(realmIndex, layer) + armorHpBonus
 
   useEffect(() => {
     saveGame(state)
@@ -174,7 +223,11 @@ function App() {
         setIsCultivating(false)
         setProgress(0)
         setLastGain(gainPerCycle)
-        setState((s) => ({ ...s, cultivation: s.cultivation + gainPerCycle }))
+        setState((s) => {
+          const req = s.layer === LAYERS_PER_REALM ? getBreakthroughRequired(s.realmIndex + 1, 1) : getBreakthroughRequired(s.realmIndex, s.layer + 1)
+          const newCultivation = Math.min(s.cultivation + gainPerCycle, req)
+          return { ...s, cultivation: newCultivation }
+        })
       }
     }
     const id = setInterval(tick, 50)
@@ -249,8 +302,8 @@ function App() {
       const inv = s.inventory ?? {}
       const cur = inv[itemId] ?? 0
       if (cur < 1) return s
-      const weapons = [...(s.equipment?.weapons ?? Array(5).fill(null))]
-      if (slotIndex >= 0 && slotIndex < 5) {
+      const weapons = [...(s.equipment?.weapons ?? Array(4).fill(null))]
+      if (slotIndex >= 0 && slotIndex < 4) {
         const old = weapons[slotIndex]?.itemId
         const newInv = { ...inv }
         if (old) newInv[old] = (newInv[old] ?? 0) + 1
@@ -292,6 +345,71 @@ function App() {
     })
   }, [])
 
+  const handleEquipArmor = useCallback((itemId, slotIndex) => {
+    setState((s) => {
+      const inv = s.inventory ?? {}
+      const cur = inv[itemId] ?? 0
+      if (cur < 1) return s
+      const armors = [...(s.equipment?.armors ?? Array(4).fill(null))]
+      if (slotIndex >= 0 && slotIndex < 4) {
+        const old = armors[slotIndex]?.itemId
+        const newInv = { ...inv }
+        if (old) newInv[old] = (newInv[old] ?? 0) + 1
+        newInv[itemId] = (newInv[itemId] ?? 0) - 1
+        if (newInv[itemId] <= 0) delete newInv[itemId]
+        armors[slotIndex] = { itemId }
+        return {
+          ...s,
+          inventory: newInv,
+          equipment: { ...s.equipment, armors },
+        }
+      }
+      const idx = armors.findIndex((x) => !x)
+      if (idx < 0) return s
+      const newInv = { ...inv }
+      newInv[itemId] = (newInv[itemId] ?? 0) - 1
+      if (newInv[itemId] <= 0) delete newInv[itemId]
+      armors[idx] = { itemId }
+      return {
+        ...s,
+        inventory: newInv,
+        equipment: { ...s.equipment, armors },
+      }
+    })
+  }, [])
+
+  const handleUnequipArmor = useCallback((slotIndex) => {
+    setState((s) => {
+      const armors = [...(s.equipment?.armors ?? [])]
+      const slot = armors[slotIndex]
+      if (!slot?.itemId) return s
+      const itemId = slot.itemId
+      armors[slotIndex] = null
+      return {
+        ...s,
+        equipment: { ...s.equipment, armors },
+        inventory: addToInventory(s.inventory ?? {}, itemId, 1),
+      }
+    })
+  }, [])
+
+  /** 使用直接增加修为的丹药（如凝气丹），修为不超过当前突破所需 */
+  const handleUseDirectPill = useCallback((itemId) => {
+    const gain = getPillCultivationGain(itemId)
+    if (gain <= 0) return
+    setState((s) => {
+      const inv = s.inventory ?? {}
+      if ((inv[itemId] ?? 0) < 1) return s
+      const req = s.layer === LAYERS_PER_REALM ? getBreakthroughRequired(s.realmIndex + 1, 1) : getBreakthroughRequired(s.realmIndex, s.layer + 1)
+      const newCultivation = Math.min(s.cultivation + gain, req)
+      return {
+        ...s,
+        cultivation: newCultivation,
+        inventory: removeFromInventory(inv, itemId, 1),
+      }
+    })
+  }, [])
+
   const handleUsePill = useCallback((itemId) => {
     const pill = getItemById(itemId)
     if (!pill || pill.type !== 'pill') return
@@ -326,11 +444,89 @@ function App() {
     })
   }, [])
 
+  const handleLearnTechnique = useCallback((techId) => {
+    setState((s) => {
+      const learned = s.learnedTechs ?? []
+      if (learned.includes(techId)) return s
+      const available = s.availableTechs ?? INITIAL_AVAILABLE_TECHNIQUES
+      if (!available.includes(techId)) return s
+      return {
+        ...s,
+        learnedTechs: [...learned, techId],
+      }
+    })
+  }, [])
+
+  const handleUseRecipe = useCallback((recipeId) => {
+    setState((s) => {
+      const owned = s.ownedRecipes ?? []
+      if (!owned.includes(recipeId)) return s
+      const rec = getRecipe(recipeId)
+      if (!rec) return s
+      const learned = s.learnedRecipes ?? []
+      const alreadyLearned = learned.includes(rec.pillId)
+      return {
+        ...s,
+        ownedRecipes: owned.filter((id) => id !== recipeId),
+        learnedRecipes: alreadyLearned ? learned : [...learned, rec.pillId],
+      }
+    })
+  }, [])
+
+  const handleEquipFurnace = useCallback((furnaceId) => {
+    setState((s) => ({
+      ...s,
+      equippedFurnaceId: furnaceId,
+    }))
+  }, [])
+
+  const handleCraft = useCallback((pillId) => {
+    setState((s) => {
+      const learned = s.learnedRecipes ?? []
+      if (!learned.includes(pillId)) return s
+      if (!canCraftWithInventory(pillId, s.inventory)) return s
+      const rate = getCraftSuccessRate(pillId, s.equippedFurnaceId ?? null)
+      const success = Math.random() * 100 < rate
+      const inv = deductCraftMaterials(s.inventory, pillId)
+      const count = success ? getCraftResultCount() : 0
+      return {
+        ...s,
+        inventory: success ? addToInventory(inv, pillId, count) : inv,
+        lastCraftResult: { success, pillId, count },
+      }
+    })
+  }, [])
+
   const handleBuyItem = useCallback((itemId, price) => {
     setState((s) => {
       const stones = s.spiritStones ?? 0
       if (stones < price) return s
+      const item = getItemById(itemId)
       const nextShop = (s.shopItems ?? []).filter((id) => id !== itemId)
+      if (item?.type === ITEM_TYPES.MATERIAL) {
+        return {
+          ...s,
+          spiritStones: stones - price,
+          inventory: addToInventory(s.inventory ?? {}, itemId, MATERIAL_SHOP_COUNT),
+          shopItems: nextShop,
+        }
+      }
+      if (item?.type === ITEM_TYPES.FURNACE) {
+        return {
+          ...s,
+          spiritStones: stones - price,
+          ownedFurnaces: [...(s.ownedFurnaces ?? []), itemId],
+          shopItems: nextShop,
+        }
+      }
+      if (item?.type === ITEM_TYPES.RECIPE) {
+        return {
+          ...s,
+          spiritStones: stones - price,
+          ownedRecipes: [...(s.ownedRecipes ?? []), itemId],
+          shopItems: nextShop,
+        }
+      }
       return {
         ...s,
         spiritStones: stones - price,
@@ -367,6 +563,20 @@ function App() {
             onClick={() => setShowTreasurePavilion(true)}
           >
             藏宝阁
+          </button>
+          <button
+            className="btn-treasure-pavilion"
+            style={{ marginTop: '0.5rem' }}
+            onClick={() => setShowTechniquePavilion(true)}
+          >
+            功法阁
+          </button>
+          <button
+            className="btn-treasure-pavilion"
+            style={{ marginTop: '0.5rem' }}
+            onClick={() => setShowAlchemyRoom(true)}
+          >
+            炼丹房
           </button>
         </aside>
         <div className="cultivation-column">
@@ -421,12 +631,15 @@ function App() {
           <EquipmentPanel
             equipment={equipment}
             onUnequipWeapon={handleUnequipWeapon}
+            onUnequipArmor={handleUnequipArmor}
           />
           <InventoryPanel
             inventory={inventory}
             equipment={equipment}
             onEquipWeapon={handleEquipWeapon}
             onUnequipWeapon={handleUnequipWeapon}
+            onEquipArmor={handleEquipArmor}
+            onUseDirectPill={handleUseDirectPill}
           />
         </aside>
       </main>
@@ -468,6 +681,32 @@ function App() {
         onBuy={handleBuyItem}
         onForceRefresh={handleShopForceRefresh}
         refreshCost={SHOP_REFRESH_COST}
+      />
+
+      <TechniquePavilionModal
+        show={showTechniquePavilion}
+        onClose={() => setShowTechniquePavilion(false)}
+        learned={learnedTechs}
+        available={availableTechs}
+        onLearn={handleLearnTechnique}
+      />
+
+      <AlchemyRoomModal
+        show={showAlchemyRoom}
+        onClose={() => {
+          setShowAlchemyRoom(false)
+          setState((s) => ({ ...s, lastCraftResult: null }))
+        }}
+        learnedRecipes={learnedRecipes}
+        ownedRecipes={ownedRecipes}
+        ownedFurnaces={ownedFurnaces}
+        equippedFurnaceId={equippedFurnaceId}
+        inventory={inventory}
+        lastCraftResult={lastCraftResult}
+        onClearCraftResult={() => setState((s) => ({ ...s, lastCraftResult: null }))}
+        onUseRecipe={handleUseRecipe}
+        onEquipFurnace={handleEquipFurnace}
+        onCraft={handleCraft}
       />
     </div>
   )

@@ -1,5 +1,5 @@
 /**
- * 使用丹药确认弹窗
+ * 使用丹药确认弹窗（突破丹：+5% 成功率；直接使用丹：如凝气丹 +修为）
  */
 import { getPillGradeColor } from '../data/items'
 import './UsePillModal.css'
@@ -10,6 +10,7 @@ export default function UsePillModal({ show, item, onClose, onConfirm }) {
   if (!show || !item) return null
 
   const realmName = REALM_NAMES[item.realmIndex] ?? ''
+  const isDirectUse = item.cultivationGain != null && item.cultivationGain > 0
 
   return (
     <div className="use-pill-overlay" onClick={onClose}>
@@ -22,7 +23,9 @@ export default function UsePillModal({ show, item, onClose, onConfirm }) {
           {item.name}
         </p>
         <p className="pill-effect">
-          使用后提升{realmName}突破成功率 +5%
+          {isDirectUse
+            ? `使用后直接增加 ${item.cultivationGain.toLocaleString()} 修为`
+            : `使用后提升${realmName}突破成功率 +5%`}
         </p>
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>取消</button>

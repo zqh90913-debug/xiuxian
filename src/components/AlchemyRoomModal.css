@@ -1,0 +1,310 @@
+.alchemy-room-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--app-bg, #1b120a);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 100;
+  padding: 0.75rem;
+}
+
+.alchemy-room-modal {
+  background: var(--wood-dark);
+  border: 2px solid var(--slot-border);
+  border-radius: 4px;
+  max-width: 880px;
+  width: 100%;
+  max-height: calc(100vh - 1.5rem);
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.alchemy-room-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.alchemy-room-header .btn-back {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.alchemy-room-header h3 {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.3rem;
+  color: var(--gold);
+}
+
+.alchemy-room-upper,
+.alchemy-room-lower {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.75rem;
+}
+
+.alchemy-room-upper h4,
+.alchemy-room-lower h4 {
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.4rem;
+}
+
+.alchemy-craft-result {
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  border: 1px solid;
+}
+.alchemy-craft-result.success {
+  color: #c8b86c;
+  border-color: #c8b86c;
+  background: rgba(200, 184, 108, 0.15);
+}
+.alchemy-craft-result.fail {
+  color: #b8866b;
+  border-color: #8b6914;
+  background: rgba(139, 105, 20, 0.15);
+}
+
+.alchemy-craft-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.alchemy-craft-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.alchemy-craft-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--slot-border);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.alchemy-pill-portrait {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.alchemy-craft-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.alchemy-pill-name {
+  font-size: 0.95rem;
+}
+
+.alchemy-craft-meta {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  word-break: break-all;
+}
+
+.btn-craft {
+  margin-top: 0.2rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 2px;
+  border: 1px solid var(--slot-border);
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+}
+
+.btn-craft:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.alchemy-furnace-slot {
+  flex-shrink: 0;
+  padding: 0.5rem;
+  min-width: 100px;
+}
+
+.furnace-slot-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.3rem;
+}
+
+.furnace-slot-inner {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed var(--slot-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.furnace-slot-inner:hover {
+  border-color: var(--gold);
+}
+
+.furnace-name {
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.furnace-empty {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.alchemy-progress-wrap {
+  margin-top: 0.5rem;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.alchemy-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  transition: width 0.1s linear;
+}
+
+.alchemy-progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.alchemy-confirm-craft,
+.alchemy-confirm-use {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.alchemy-confirm-craft p,
+.alchemy-confirm-use p {
+  font-size: 0.9rem;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+}
+
+.alchemy-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.alchemy-confirm-actions .btn-confirm {
+  padding: 0.35rem 0.75rem;
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.alchemy-furnace-picker {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.75rem;
+}
+
+.alchemy-furnace-picker h4 {
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.4rem;
+}
+
+.furnace-picker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.furnace-picker-item {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 2px;
+  border: 1px solid var(--slot-border);
+  background: var(--slot-bg);
+  color: var(--ink);
+}
+
+.furnace-picker-item.equipped {
+  border-color: var(--gold);
+  background: rgba(201, 162, 39, 0.2);
+}
+
+.btn-close-picker {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.alchemy-recipe-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.alchemy-recipe-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--slot-border);
+}
+
+.recipe-name {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.recipe-pill {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.btn-use-recipe {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 2px;
+  border: 1px solid var(--slot-border);
+  background: var(--btn-bg);
+  color: var(--ink);
+}
+
+.alchemy-empty {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
