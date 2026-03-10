@@ -1,0 +1,58 @@
+.status-panel {
+  padding: 1rem 1.25rem;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.status-row:last-child {
+  margin-bottom: 0;
+}
+
+.status-row .label {
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  min-width: 4.2em;
+}
+
+.status-row .value {
+  font-size: 0.95rem;
+}
+
+.status-row .value.realm {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.status-row .value.cultivation {
+  color: var(--ink);
+}
+
+.status-row .value.gain {
+  color: #7cb342;
+}
+
+.breakthrough-row {
+  flex-wrap: wrap;
+}
+
+.breakthrough-mini-bar {
+  flex: 1;
+  min-width: 70px;
+  height: 5px;
+  background: var(--slot-bg);
+  border: 1px solid var(--slot-border);
+  border-radius: 1px;
+  overflow: hidden;
+  margin-top: 0.2rem;
+}
+
+.breakthrough-mini-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  transition: width 0.3s ease;
+}

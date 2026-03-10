@@ -1,0 +1,58 @@
+.equipment-panel {
+  padding: 0.75rem;
+}
+
+.equipment-section {
+  margin-bottom: 0.75rem;
+}
+
+.equipment-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.4rem;
+}
+
+.slot-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.equip-slot {
+  flex: 1;
+  aspect-ratio: 1;
+  min-width: 0;
+  background: var(--slot-bg);
+  border: 2px solid var(--slot-border);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+}
+
+.equip-slot[data-type="weapon"] {
+  border-color: var(--weapon-border);
+}
+
+.equip-slot[data-type="weapon"]:has(.item-preview) {
+  cursor: pointer;
+}
+
+.equip-slot[data-type="armor"] {
+  border-color: var(--armor-border);
+}
+
+.item-preview {
+  font-size: 0.6rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding: 0 2px;
+}

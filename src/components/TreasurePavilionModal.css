@@ -1,0 +1,333 @@
+.treasure-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.treasure-modal {
+  background: var(--wood-dark);
+  border: 2px solid var(--slot-border);
+  border-radius: 4px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.treasure-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--slot-border);
+}
+
+.treasure-modal-header h3 {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.25rem;
+  color: var(--gold);
+  flex: 1;
+}
+
+.spirit-stones {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.btn-close {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.btn-close:hover {
+  background: var(--btn-hover);
+}
+
+.treasure-shop-section,
+.treasure-inventory-section {
+  padding: 0.75rem;
+  margin: 0.75rem;
+}
+
+.treasure-shop-section h4,
+.treasure-inventory-section h4 {
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.5rem;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.shop-slot {
+  aspect-ratio: 1;
+  background: var(--slot-bg);
+  border: 2px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.shop-slot.empty {
+  opacity: 0.6;
+}
+
+.shop-slot.has-item {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.shop-slot.has-item.can-buy:hover {
+  background: rgba(201, 162, 39, 0.2);
+}
+
+.shop-slot.has-item.selected {
+  background: rgba(201, 162, 39, 0.25);
+}
+
+.buy-confirm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.buy-preview {
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.btn-confirm-buy {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+  border: 1px solid var(--ink-muted);
+  border-radius: 2px;
+}
+
+.btn-confirm-buy:hover {
+  background: linear-gradient(180deg, var(--gold), var(--red));
+}
+
+.shop-item-type-tag {
+  font-size: 0.6rem;
+  color: var(--ink-muted);
+  margin-bottom: 2px;
+}
+
+.shop-item-name {
+  font-size: 0.7rem;
+  color: var(--ink);
+}
+
+.shop-item-price {
+  font-size: 0.6rem;
+  color: var(--gold);
+}
+
+.shop-slot .shop-pill-portrait {
+  max-width: 36px;
+  max-height: 36px;
+}
+
+.shop-refresh-row {
+  margin-top: 0.5rem;
+}
+
+.btn-refresh-shop {
+  width: 100%;
+  padding: 0.4rem;
+  font-size: 0.85rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.btn-refresh-shop:hover:not(:disabled) {
+  background: var(--btn-hover);
+}
+
+.btn-refresh-shop:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sell-count-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.sell-count-row input {
+  width: 2.5rem;
+  padding: 0.2rem;
+  font-size: 0.8rem;
+  background: var(--slot-bg);
+  border: 1px solid var(--slot-border);
+  color: var(--ink);
+}
+
+.sell-zone {
+  min-height: 50px;
+  padding: 0.5rem;
+  background: var(--slot-bg);
+  border: 2px dashed var(--slot-border);
+  border-radius: 2px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sell-zone:has(.sell-preview) {
+  border-style: solid;
+}
+
+.sell-placeholder {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.sell-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sell-preview .sell-pill-portrait {
+  max-width: 40px;
+  max-height: 40px;
+}
+
+.sell-item-name {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.sell-price {
+  font-size: 0.85rem;
+  color: var(--gold);
+}
+
+.btn-confirm-sell {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+  border: 1px solid var(--ink-muted);
+  border-radius: 2px;
+}
+
+.btn-confirm-sell:hover {
+  background: linear-gradient(180deg, var(--gold), var(--red));
+}
+
+.treasure-inv-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 3px;
+  aspect-ratio: 5 / 6;
+  min-height: 140px;
+  width: 100%;
+  max-width: 256px;
+}
+
+.treasure-inv-slot {
+  position: relative;
+  background: var(--slot-bg);
+  border: 2px solid var(--slot-border);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  cursor: default;
+}
+
+.treasure-inv-slot.has-item {
+  cursor: grab;
+}
+
+.treasure-inv-slot.has-item.pill {
+  cursor: pointer;
+}
+
+.treasure-inv-slot.has-item:active {
+  cursor: grabbing;
+}
+
+.treasure-inv-slot .pill-portrait {
+  max-width: 24px;
+  max-height: 24px;
+  flex-shrink: 0;
+}
+
+.treasure-inv-slot .item-preview {
+  font-size: 0.6rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding: 0 2px;
+  flex-shrink: 0;
+  min-height: 1em;
+}
+
+.treasure-inv-slot .item-count {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-size: 0.45rem;
+  color: var(--ink-muted);
+}
+
+.treasure-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.treasure-pagination .page-btn {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.treasure-pagination .page-btn:hover:not(:disabled) {
+  background: var(--btn-hover);
+}
+
+.treasure-pagination .page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -1,0 +1,152 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal {
+  background: linear-gradient(180deg, var(--paper) 0%, var(--wood) 100%);
+  border: 2px solid var(--slot-border);
+  border-radius: 4px;
+  padding: 1.5rem;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal h3 {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: var(--gold);
+  text-align: center;
+}
+
+.realm-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.realm-flow .from {
+  color: var(--ink-muted);
+}
+
+.realm-flow .arrow {
+  color: var(--gold);
+  font-size: 1.1rem;
+}
+
+.realm-flow .to {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.cost {
+  text-align: center;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.success-rate {
+  text-align: center;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+
+.breakthrough-failed {
+  font-size: 0.9rem;
+  color: var(--red-dim);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.tip {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.breakthrough-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.breakthrough-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.btn-use-pill {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  background: var(--slot-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.btn-use-pill:hover:not(:disabled) {
+  background: var(--paper-light);
+}
+
+.btn-use-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pill-hint {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.breakthrough-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.btn-cancel,
+.btn-confirm {
+  padding: 0.5rem 1rem;
+  border-radius: 2px;
+  font-size: 0.95rem;
+  border: 1px solid var(--slot-border);
+}
+
+.btn-cancel {
+  background: var(--slot-bg);
+  color: var(--ink);
+}
+
+.btn-cancel:hover {
+  background: var(--paper-light);
+}
+
+.btn-confirm {
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+}
+
+.btn-confirm:hover {
+  background: linear-gradient(180deg, var(--gold), var(--red));
+}

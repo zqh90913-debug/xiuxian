@@ -1,0 +1,36 @@
+.character-portrait {
+  position: relative;
+  width: 140px;
+  height: 224px;
+}
+
+.portrait-glow {
+  position: absolute;
+  inset: -16px;
+  background: radial-gradient(circle, rgba(201, 162, 39, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.character-portrait.cultivating .portrait-glow {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.portrait-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.character-portrait.cultivating .third-eye {
+  animation: eyePulse 1s ease-in-out infinite;
+}
+
+@keyframes eyePulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}

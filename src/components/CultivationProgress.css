@@ -1,0 +1,47 @@
+.cultivation-progress-wrap {
+  width: 100%;
+  max-width: 260px;
+}
+
+.progress-label {
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.4rem;
+  text-align: center;
+}
+
+.progress-track {
+  height: 24px;
+  background: var(--slot-bg);
+  border: 2px solid var(--slot-border);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.progress-track:hover {
+  border-color: var(--gold-dim);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  transition: width 0.05s linear;
+}
+
+.progress-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.2));
+  pointer-events: none;
+}
+
+.progress-hint {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin-top: 0.4rem;
+  text-align: center;
+}

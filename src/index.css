@@ -1,0 +1,55 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* 中国古风配色 */
+  --paper: #2a1f14;
+  --paper-light: #3d2d1e;
+  --wood: #1f1510;
+  --wood-dark: #140e0a;
+  --ink: #e8dcc8;
+  --ink-muted: #8b7355;
+  --gold: #c9a227;
+  --gold-dim: #9a7b1a;
+  --red: #8b2500;
+  --red-dim: #6b1d00;
+  --accent: #d4af37;
+  --accent-dim: #b8960c;
+  --slot-bg: rgba(31, 21, 16, 0.8);
+  --slot-border: #5c4a35;
+  --weapon-border: #7d5c3a;
+  --armor-border: #4a5c5c;
+  --btn-bg: rgba(60, 45, 30, 0.9);
+  --btn-hover: rgba(80, 60, 40, 0.95);
+}
+
+html {
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Noto Serif SC', 'ZCOOL KuaiLe', 'Microsoft YaHei', serif;
+  background: var(--wood-dark);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(ellipse 100% 80% at 30% 20%, rgba(42, 31, 20, 0.9), transparent),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath fill='%231a1208' fill-opacity='0.3' d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+}
