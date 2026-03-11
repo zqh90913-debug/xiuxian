@@ -1,0 +1,156 @@
+.world-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+  z-index: 110;
+}
+
+.world-modal {
+  width: 100%;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  background: var(--wood-dark);
+  border-radius: 0;
+  border: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.world-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.world-header h3 {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.3rem;
+  color: var(--gold);
+}
+
+.btn-world-back {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.world-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.world-map {
+  min-height: 260px;
+}
+
+.world-map-inner {
+  position: relative;
+  height: 100%;
+  min-height: 260px;
+  /* 海洋 + 大陆板块背景 */
+  background:
+    radial-gradient(circle at 20% 25%, #5c8a4a 0, #5c8a4a 32%, transparent 40%),
+    radial-gradient(circle at 72% 35%, #5c8a4a 0, #5c8a4a 30%, transparent 38%),
+    radial-gradient(circle at 40% 78%, #5c8a4a 0, #5c8a4a 26%, transparent 34%),
+    linear-gradient(180deg, #163042, #0b1823);
+  overflow: hidden;
+}
+
+.world-region-node {
+  position: absolute;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--slot-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.world-region-node .world-region-name {
+  white-space: nowrap;
+}
+
+.world-region-node.active {
+  border-color: var(--gold);
+  background: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 0 6px rgba(201, 162, 39, 0.7);
+  transform: translateY(-1px);
+}
+
+/* 简单的五域布局：东、西、南、北、中 */
+.world-region-node.region-east {
+  right: 12%;
+  top: 40%;
+}
+
+.world-region-node.region-west {
+  left: 12%;
+  top: 45%;
+}
+
+.world-region-node.region-south {
+  left: 40%;
+  bottom: 14%;
+}
+
+.world-region-node.region-north {
+  left: 38%;
+  top: 12%;
+}
+
+.world-region-node.region-center {
+  left: 45%;
+  top: 46%;
+}
+
+.world-region-detail {
+  display: flex;
+  flex-direction: column;
+  padding: 0.7rem 0.9rem;
+}
+
+.world-region-title {
+  font-size: 1rem;
+  color: var(--gold);
+  margin-bottom: 0.35rem;
+}
+
+.world-region-desc {
+  font-size: 0.9rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.btn-enter-region {
+  margin-top: 0.5rem;
+  align-self: flex-start;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+  border-radius: 2px;
+  border: 1px solid var(--slot-border);
+}
+
+@media (max-width: 720px) {
+  .world-content {
+    grid-template-columns: 1fr;
+  }
+}
+

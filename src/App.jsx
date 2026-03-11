@@ -17,6 +17,10 @@ import InventoryPanel from './components/InventoryPanel'
 import TreasurePavilionModal from './components/TreasurePavilionModal'
 import TechniquePavilionModal from './components/TechniquePavilionModal'
 import AlchemyRoomModal from './components/AlchemyRoomModal'
+import WorldMapModal from './components/WorldMapModal'
+import RegionSceneModal from './components/RegionSceneModal'
+import SectModal from './components/SectModal'
+import { REGIONS, REGION_NAME_MAP, getRandomSectForRegion } from './data/sects'
 import { INITIAL_AVAILABLE_TECHNIQUES, getTechniqueById } from './data/techniques'
 import {
   INITIAL_OWNED_RECIPES,
@@ -28,7 +32,7 @@ import {
   deductCraftMaterials,
 } from './data/alchemy'
 import RedeemCodeModal from './components/RedeemCodeModal'
-import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, removeFromInventory, SHOP_ITEM_IDS, WEAPON_IDS, getWeaponAttackBonus, getPillCultivationGain, getArmorHpBonus, ITEM_TYPES, MATERIAL_SHOP_COUNT } from './data/items'
+import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, removeFromInventory, SHOP_ITEM_IDS, WEAPON_IDS, getWeaponAttackBonus, getPillCultivationGain, getArmorHpBonus, ITEM_TYPES, MATERIAL_SHOP_COUNT, MATERIAL_IDS } from './data/items'
 import './App.css'
 
 const CULTIVATION_DURATION_MS = 10000
@@ -89,9 +93,11 @@ function loadSave() {
           learnedTechs: Array.isArray(data.learnedTechs) ? data.learnedTechs : [],
           availableTechs: Array.isArray(data.availableTechs) ? data.availableTechs : INITIAL_AVAILABLE_TECHNIQUES,
           ownedRecipes: Array.isArray(data.ownedRecipes) ? data.ownedRecipes : INITIAL_OWNED_RECIPES,
-          learnedRecipes: [], // 已去除全部可炼制丹药，不再从存档恢复
+          // 丹方使用后永久生效，已学会的炼丹配方会随存档一同保留
+          learnedRecipes: Array.isArray(data.learnedRecipes) ? data.learnedRecipes : [],
           ownedFurnaces: Array.isArray(data.ownedFurnaces) ? data.ownedFurnaces : INITIAL_OWNED_FURNACES,
           equippedFurnaceId: data.equippedFurnaceId ?? null,
+          joinedSect: data.joinedSect ?? null,
         }
       }
     }
@@ -113,6 +119,7 @@ function loadSave() {
     learnedRecipes: [],
     ownedFurnaces: INITIAL_OWNED_FURNACES,
     equippedFurnaceId: null,
+    joinedSect: null,
   }
 }
 
@@ -135,6 +142,7 @@ function saveGame(state) {
       learnedRecipes: state.learnedRecipes ?? [],
       ownedFurnaces: state.ownedFurnaces ?? INITIAL_OWNED_FURNACES,
       equippedFurnaceId: state.equippedFurnaceId ?? null,
+      joinedSect: state.joinedSect ?? null,
     }))
   } catch (_) {}
 }
@@ -148,6 +156,13 @@ function App() {
   const [showRedeemCode, setShowRedeemCode] = useState(false)
   const [showTechniquePavilion, setShowTechniquePavilion] = useState(false)
   const [showAlchemyRoom, setShowAlchemyRoom] = useState(false)
+  const [showWorldMap, setShowWorldMap] = useState(false)
+  const [showRegionScene, setShowRegionScene] = useState(false)
+  const [showSectModal, setShowSectModal] = useState(false)
+  const [currentRegionId, setCurrentRegionId] = useState(null)
+  const [regionLogs, setRegionLogs] = useState({})
+  const [pendingSect, setPendingSect] = useState(null)
+  const [pendingBandit, setPendingBandit] = useState(null)
   const [breakthroughFailed, setBreakthroughFailed] = useState(false)
   const [lastGain, setLastGain] = useState(0)
   const [autoCultivate, setAutoCultivate] = useState(() => {
@@ -157,6 +172,10 @@ function App() {
       return false
     }
   })
+
+  const [exploreWindowStart, setExploreWindowStart] = useState(() => Date.now())
+  const [exploreUsed, setExploreUsed] = useState(0)
+  const [exploreExtra, setExploreExtra] = useState(0)
 
   useEffect(() => {
     if (lastGain > 0) {
@@ -171,7 +190,26 @@ function App() {
     } catch (_) {}
   }, [autoCultivate])
 
-  const { realmIndex, layer, cultivation, equipment, inventory, bigRealmBreakCount, spiritStones, pillSuccessBonus, shopLastRefreshTime, shopItems, learnedTechs = [], availableTechs = INITIAL_AVAILABLE_TECHNIQUES, ownedRecipes = INITIAL_OWNED_RECIPES, learnedRecipes = [], ownedFurnaces = INITIAL_OWNED_FURNACES, equippedFurnaceId = null, lastCraftResult = null } = state
+  const {
+    realmIndex,
+    layer,
+    cultivation,
+    equipment,
+    inventory,
+    bigRealmBreakCount,
+    spiritStones,
+    pillSuccessBonus,
+    shopLastRefreshTime,
+    shopItems,
+    learnedTechs = [],
+    availableTechs = INITIAL_AVAILABLE_TECHNIQUES,
+    ownedRecipes = INITIAL_OWNED_RECIPES,
+    learnedRecipes = [],
+    ownedFurnaces = INITIAL_OWNED_FURNACES,
+    equippedFurnaceId = null,
+    lastCraftResult = null,
+    joinedSect = null,
+  } = state
   const isMaxRealm = realmIndex === REALMS.length - 1 && layer === LAYERS_PER_REALM
 
   const required = isMaxRealm
@@ -248,10 +286,19 @@ function App() {
     prevCultivatingRef.current = isCultivating
   }, [isCultivating, autoCultivate])
 
+  const appendRegionLog = useCallback((regionId, line) => {
+    setRegionLogs((prev) => {
+      const list = prev[regionId] ?? []
+      return { ...prev, [regionId]: [...list, line] }
+    })
+  }, [])
+
   const isBigRealmBreak = layer === LAYERS_PER_REALM
   const nextRealmIndex = isBigRealmBreak ? realmIndex + 1 : realmIndex
   const pillBonus = pillSuccessBonus?.[nextRealmIndex] ?? 0
-  const bigRealmSuccessRate = Math.min(100, Math.max(10, 90 - (bigRealmBreakCount ?? 0) * 10) + pillBonus)
+  // 大境界突破基础成功率：初始约 60%，多次失败后逐步降低到 10%
+  const baseBigRealmRate = Math.max(10, 60 - (bigRealmBreakCount ?? 0) * 10)
+  const bigRealmSuccessRate = Math.min(95, baseBigRealmRate + pillBonus)
 
   const doBreakthrough = useCallback(() => {
     if (!canBreakthrough) return
@@ -444,6 +491,208 @@ function App() {
     })
   }, [])
 
+  const handleEnterRegion = useCallback((regionId) => {
+    if (!regionId) return
+    setCurrentRegionId(regionId)
+    setShowWorldMap(false)
+    setShowRegionScene(true)
+    setPendingSect(null)
+    setPendingBandit(null)
+  }, [])
+
+  const handleExploreRegion = useCallback((regionId) => {
+    // 每小时基础 10 次探索，可额外购买次数
+    const now = Date.now()
+    if (now - exploreWindowStart >= 60 * 60 * 1000) {
+      setExploreWindowStart(now)
+      setExploreUsed(0)
+      setExploreExtra(0)
+    }
+    const maxCount = 10 + exploreExtra
+    if (exploreUsed >= maxCount) {
+      const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
+      appendRegionLog(regionId, `你在${regionName}四处搜寻，却感到精力不济，本小时的探索次数似乎已经耗尽。`)
+      return
+    }
+    setExploreUsed((v) => v + 1)
+    const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
+    const roll = Math.random()
+    if (roll < 0.35) {
+      // 灵石收获
+      const delta = 1 + Math.floor(Math.random() * 100)
+      setState((s) => ({
+        ...s,
+        spiritStones: (s.spiritStones ?? 0) + delta,
+      }))
+      appendRegionLog(regionId, `在${regionName}探索时，你意外拾取了 ${delta} 枚灵石。`)
+      return
+    }
+    if (roll < 0.7 && MATERIAL_IDS.length > 0) {
+      // 炼丹材料收获
+      const mid = MATERIAL_IDS[Math.floor(Math.random() * MATERIAL_IDS.length)]
+      const count = 1 + Math.floor(Math.random() * 10)
+      const item = getItemById(mid)
+      const name = item?.name ?? mid
+      setState((s) => ({
+        ...s,
+        inventory: addToInventory(s.inventory ?? {}, mid, count),
+      }))
+      appendRegionLog(regionId, `在${regionName}密林中，你找到 ${name} ×${count}。`)
+      return
+    }
+    // 打劫事件
+    if (roll < 0.88) {
+      const enemyRealmIndex = Math.floor(Math.random() * REALMS.length)
+      const enemyRealmName = REALMS[enemyRealmIndex]
+      setPendingBandit({ regionId, enemyRealmIndex, enemyRealmName })
+      appendRegionLog(
+        regionId,
+        `你在${regionName}山道间行走时，被一名「${enemyRealmName}」修士拦住去路，冷声索要灵石。`,
+      )
+      return
+    }
+    // 宗门奇遇
+    const sect = getRandomSectForRegion(regionId)
+    if (!sect) {
+      appendRegionLog(regionId, `你在${regionName}四处游历，却一无所获。`)
+      return
+    }
+    if (joinedSect) {
+      appendRegionLog(
+        regionId,
+        `你路过「${sect.name}」，对方察觉你已身在他门，只是客气寒暄几句，婉拒你进一步拜访。`,
+      )
+      return
+    }
+    setPendingSect(sect)
+    const needRealmName = REALMS[sect.minRealmIndex] ?? '更高境界'
+    appendRegionLog(
+      regionId,
+      `你远远望见一座宗门——「${sect.name}」（${sect.levelLabel}，需至少修至「${needRealmName}」），似乎可以前往拜访。`,
+    )
+  }, [appendRegionLog, exploreWindowStart, exploreUsed, exploreExtra, joinedSect])
+
+  const handleDismissSect = useCallback(() => {
+    setPendingSect(null)
+  }, [])
+
+  const resolveBanditFight = useCallback((winFromEscape = false) => {
+    if (!pendingBandit) return
+    const { enemyRealmIndex, enemyRealmName } = pendingBandit
+    const playerRealm = realmIndex
+    let successChance = 0.5 + 0.1 * (playerRealm - enemyRealmIndex)
+    successChance = Math.max(0.2, Math.min(0.8, successChance))
+    const win = Math.random() < successChance
+    if (win) {
+      const gain = 100 + Math.floor(Math.random() * 2901)
+      setState((s) => ({
+        ...s,
+        spiritStones: (s.spiritStones ?? 0) + gain,
+      }))
+      appendRegionLog(
+        currentRegionId,
+        winFromEscape
+          ? `你没能成功逃离，与这名「${enemyRealmName}」修士短暂交手后占得上风，从其身上搜出 ${gain} 枚灵石。`
+          : `你与这名「${enemyRealmName}」修士激战一番，最终获胜，并从其身上夺得 ${gain} 枚灵石。`,
+      )
+    } else {
+      setState((s) => {
+        const cur = s.spiritStones ?? 0
+        const loss = Math.floor(cur / 2)
+        return {
+          ...s,
+          spiritStones: cur - loss,
+        }
+      })
+      appendRegionLog(
+        currentRegionId,
+        `你不敌这名「${enemyRealmName}」修士，被迫交出一半随身灵石后才得以脱身。`,
+      )
+    }
+    setPendingBandit(null)
+  }, [appendRegionLog, currentRegionId, pendingBandit, realmIndex])
+
+  const handleBanditFight = useCallback(() => {
+    resolveBanditFight(false)
+  }, [resolveBanditFight])
+
+  const handleBanditPay = useCallback(() => {
+    if (!pendingBandit) return
+    const { enemyRealmName } = pendingBandit
+    setState((s) => {
+      const cur = s.spiritStones ?? 0
+      if (cur < 1000) {
+        appendRegionLog(
+          currentRegionId,
+          `你想以破财消灾，却发现灵石不足，对方冷笑不语，似乎并不打算就此罢手。`,
+        )
+        return s
+      }
+      appendRegionLog(
+        currentRegionId,
+        `你咬牙交出一袋 1000 枚灵石，这名「${enemyRealmName}」修士满意离去。`,
+      )
+      return {
+        ...s,
+        spiritStones: cur - 1000,
+      }
+    })
+    setPendingBandit(null)
+  }, [appendRegionLog, currentRegionId, pendingBandit])
+
+  const handleBanditEscape = useCallback(() => {
+    if (!pendingBandit) return
+    const { enemyRealmIndex, enemyRealmName } = pendingBandit
+    let escapeChance = 0.8 - 0.07 * enemyRealmIndex
+    escapeChance = Math.max(0.25, Math.min(0.9, escapeChance))
+    const success = Math.random() < escapeChance
+    if (success) {
+      appendRegionLog(
+        currentRegionId,
+        `你施展身法，勉强甩开了这名「${enemyRealmName}」修士的追击，安全脱离险境。`,
+      )
+      setPendingBandit(null)
+      return
+    }
+    appendRegionLog(
+      currentRegionId,
+      `你试图逃离，却被这名「${enemyRealmName}」修士死死缠住，被迫迎战！`,
+    )
+    resolveBanditFight(true)
+  }, [appendRegionLog, currentRegionId, pendingBandit, resolveBanditFight])
+
+  const handleJoinSect = useCallback(() => {
+    if (!pendingSect) return
+    const { minRealmIndex } = pendingSect
+    if (realmIndex < minRealmIndex) {
+      appendRegionLog(currentRegionId, `你尝试加入「${pendingSect.name}」，但境界不足，被守门弟子婉拒。`)
+      setPendingSect(null)
+      return
+    }
+    setState((s) => ({
+      ...s,
+      joinedSect: pendingSect,
+    }))
+    appendRegionLog(currentRegionId, `你正式拜入「${pendingSect.name}」，成为其门下弟子。`)
+    setPendingSect(null)
+  }, [pendingSect, realmIndex, currentRegionId, appendRegionLog])
+
+  const handleBuyExploreChance = useCallback((regionId) => {
+    setState((s) => {
+      const stones = s.spiritStones ?? 0
+      if (stones < 20) {
+        const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
+        appendRegionLog(regionId, `你想要继续在${regionName}探索，却发现灵石不足以换取新的机会。`)
+        return s
+      }
+      return {
+        ...s,
+        spiritStones: stones - 20,
+      }
+    })
+    setExploreExtra((v) => v + 1)
+  }, [appendRegionLog])
+
   const handleLearnTechnique = useCallback((techId) => {
     setState((s) => {
       const learned = s.learnedTechs ?? []
@@ -578,6 +827,21 @@ function App() {
           >
             炼丹房
           </button>
+          <button
+            className="btn-treasure-pavilion"
+            style={{ marginTop: '0.5rem' }}
+            onClick={() => setShowWorldMap(true)}
+          >
+            大世界
+          </button>
+          <button
+            className="btn-treasure-pavilion"
+            style={{ marginTop: '0.5rem' }}
+            disabled={!joinedSect}
+            onClick={() => joinedSect && setShowSectModal(true)}
+          >
+            宗门
+          </button>
         </aside>
         <div className="cultivation-column">
           <StatusPanel
@@ -707,6 +971,49 @@ function App() {
         onUseRecipe={handleUseRecipe}
         onEquipFurnace={handleEquipFurnace}
         onCraft={handleCraft}
+      />
+
+      <WorldMapModal
+        show={showWorldMap}
+        onClose={() => setShowWorldMap(false)}
+        onEnterRegion={handleEnterRegion}
+      />
+
+      <RegionSceneModal
+        show={showRegionScene}
+        regionId={currentRegionId}
+        onClose={() => {
+          setShowRegionScene(false)
+          // 退出当前地域时刷新记录与事件
+          if (currentRegionId) {
+            setRegionLogs((prev) => {
+              const next = { ...prev }
+              delete next[currentRegionId]
+              return next
+            })
+          }
+          setPendingSect(null)
+          setPendingBandit(null)
+          setShowWorldMap(true)
+        }}
+        logs={regionLogs[currentRegionId] ?? []}
+        exploreRemaining={Math.max(0, 10 + exploreExtra - exploreUsed)}
+        pendingSect={pendingSect}
+        pendingBandit={pendingBandit}
+        onExplore={handleExploreRegion}
+        onJoinSect={handleJoinSect}
+        onDismissSect={handleDismissSect}
+        onBuyExploreChance={handleBuyExploreChance}
+        onBanditFight={handleBanditFight}
+        onBanditPay={handleBanditPay}
+        onBanditEscape={handleBanditEscape}
+      />
+
+      <SectModal
+        show={showSectModal}
+        onClose={() => setShowSectModal(false)}
+        sect={joinedSect}
+        onLeaveSect={() => setState((s) => ({ ...s, joinedSect: null }))}
       />
     </div>
   )

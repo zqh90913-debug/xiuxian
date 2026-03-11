@@ -54,13 +54,15 @@ export function deductCraftMaterials(inventory, pillId) {
 }
 
 export const CRAFT_DURATION_MS = 10000
-export const CRAFT_MIN_COUNT = 3
-export const CRAFT_MAX_COUNT = 10
+export const CRAFT_MIN_COUNT = 1
+export const CRAFT_MAX_COUNT = 3
 
-/** 炼制基础成功率：品级越高越低，最低 15% */
+/** 炼制基础成功率：整体偏低，品级越高越低 */
 export function getBaseCraftSuccessRate(pillGrade) {
-  const rate = 100 - (pillGrade ?? 1) * 8
-  return Math.max(15, Math.min(95, rate))
+  // 一品基础约 55%，九品基础约  -? 取下限 10%
+  const grade = pillGrade ?? 1
+  const rate = 70 - grade * 7
+  return Math.max(10, Math.min(80, rate))
 }
 
 /** 装备丹炉的加成（0 表示未装备） */
