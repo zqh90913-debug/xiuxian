@@ -18,6 +18,8 @@ import TreasurePavilionModal from './components/TreasurePavilionModal'
 import TechniquePavilionModal from './components/TechniquePavilionModal'
 import AlchemyRoomModal from './components/AlchemyRoomModal'
 import WorldMapModal from './components/WorldMapModal'
+import DebatePavilionModal from './components/DebatePavilionModal'
+import BingyanModal from './components/BingyanModal'
 import RegionSceneModal from './components/RegionSceneModal'
 import SectModal from './components/SectModal'
 import { REGIONS, REGION_NAME_MAP, getRandomSectForRegion } from './data/sects'
@@ -157,6 +159,8 @@ function App() {
   const [showTechniquePavilion, setShowTechniquePavilion] = useState(false)
   const [showAlchemyRoom, setShowAlchemyRoom] = useState(false)
   const [showWorldMap, setShowWorldMap] = useState(false)
+  const [showDebatePavilion, setShowDebatePavilion] = useState(false)
+  const [showBingyan, setShowBingyan] = useState(false)
   const [showRegionScene, setShowRegionScene] = useState(false)
   const [showSectModal, setShowSectModal] = useState(false)
   const [currentRegionId, setCurrentRegionId] = useState(null)
@@ -830,6 +834,13 @@ function App() {
           <button
             className="btn-treasure-pavilion"
             style={{ marginTop: '0.5rem' }}
+            onClick={() => setShowDebatePavilion(true)}
+          >
+            论道阁
+          </button>
+          <button
+            className="btn-treasure-pavilion"
+            style={{ marginTop: '0.5rem' }}
             onClick={() => setShowWorldMap(true)}
           >
             大世界
@@ -977,6 +988,23 @@ function App() {
         show={showWorldMap}
         onClose={() => setShowWorldMap(false)}
         onEnterRegion={handleEnterRegion}
+      />
+
+      <DebatePavilionModal
+        show={showDebatePavilion}
+        onClose={() => setShowDebatePavilion(false)}
+        onEnterBingyan={() => {
+          setShowDebatePavilion(false)
+          setShowBingyan(true)
+        }}
+      />
+
+      <BingyanModal
+        show={showBingyan}
+        onClose={() => {
+          setShowBingyan(false)
+          setShowDebatePavilion(true)
+        }}
       />
 
       <RegionSceneModal

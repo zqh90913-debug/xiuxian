@@ -123,8 +123,14 @@ export default function RegionSceneModal({
     )
   }
 
+  const regionBgUrl = `/region-${regionId}-bg.png`
+
   return (
-    <div className="region-overlay" onClick={onClose}>
+    <div
+      className="region-overlay"
+      onClick={onClose}
+      style={{ backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.55)), url(${regionBgUrl})` }}
+    >
       <div className="region-modal" onClick={(e) => e.stopPropagation()}>
         <div className="region-header">
           <button type="button" className="btn-world-back" onClick={onClose}>

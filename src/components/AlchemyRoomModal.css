@@ -1,7 +1,12 @@
 .alchemy-room-overlay {
   position: fixed;
   inset: 0;
-  background: var(--app-bg, #1b120a);
+  background-image:
+    linear-gradient(to bottom, rgba(20, 14, 10, 0.45), rgba(20, 14, 10, 0.75)),
+    url('/alchemy-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -10,7 +15,7 @@
 }
 
 .alchemy-room-modal {
-  background: var(--wood-dark);
+  background: rgba(20, 14, 10, 0.88);
   border: 2px solid var(--slot-border);
   border-radius: 4px;
   max-width: 880px;
@@ -125,12 +130,18 @@
 
 .btn-craft {
   margin-top: 0.2rem;
-  padding: 0.25rem 0.5rem;
+  width: 72px;
+  min-width: 72px;
+  height: 28px;
+  padding: 0;
   font-size: 0.8rem;
   border-radius: 2px;
   border: 1px solid var(--slot-border);
   background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
   color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-craft:disabled {

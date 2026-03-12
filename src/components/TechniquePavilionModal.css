@@ -1,7 +1,12 @@
 .tech-modal-overlay {
   position: fixed;
   inset: 0;
-  background: var(--app-bg, #1b120a);
+  background-image:
+    linear-gradient(to bottom, rgba(20, 14, 10, 0.5), rgba(20, 14, 10, 0.8)),
+    url('/technique-pavilion-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -10,7 +15,7 @@
 }
 
 .tech-modal {
-  background: var(--wood-dark);
+  background: rgba(20, 14, 10, 0.88);
   border: 2px solid var(--slot-border);
   border-radius: 4px;
   max-width: 880px;

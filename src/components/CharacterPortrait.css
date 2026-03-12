@@ -2,6 +2,7 @@
   position: relative;
   width: 140px;
   height: 224px;
+  overflow: visible;
 }
 
 .portrait-glow {
@@ -12,25 +13,71 @@
 }
 
 .character-portrait.cultivating .portrait-glow {
+  background: radial-gradient(circle, rgba(201, 162, 39, 0.25) 0%, rgba(154, 123, 26, 0.08) 40%, transparent 70%);
   animation: glowPulse 2s ease-in-out infinite;
 }
 
 @keyframes glowPulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 
-.portrait-svg {
+/* 修炼时：外圈光晕 */
+.portrait-aura {
+  position: absolute;
+  inset: -24px;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 35%, rgba(201, 162, 39, 0.15) 55%, transparent 75%);
+  pointer-events: none;
+  animation: auraPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes auraPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* 修炼时：灵气粒子 */
+.portrait-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(201, 162, 39, 0.9);
+  box-shadow: 0 0 6px rgba(201, 162, 39, 0.8);
+  pointer-events: none;
+}
+
+.portrait-particle-1 { left: 15%; top: 30%; animation: particleFloat 2.2s ease-in-out infinite; }
+.portrait-particle-2 { left: 85%; top: 25%; animation: particleFloat 2.6s ease-in-out infinite 0.3s; }
+.portrait-particle-3 { left: 20%; top: 70%; animation: particleFloat 2.4s ease-in-out infinite 0.6s; }
+.portrait-particle-4 { left: 78%; top: 65%; animation: particleFloat 2s ease-in-out infinite 0.2s; }
+.portrait-particle-5 { left: 50%; top: 15%; animation: particleFloat 2.8s ease-in-out infinite 0.5s; }
+
+@keyframes particleFloat {
+  0%, 100% {
+    opacity: 0.4;
+    transform: translateY(0) scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-12px) scale(1.2);
+  }
+}
+
+.character-portrait.cultivating .portrait-image {
+  animation: imageShimmer 3s ease-in-out infinite;
+}
+
+@keyframes imageShimmer {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.08) saturate(1.1); }
+}
+
+.portrait-image {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
-}
-
-.character-portrait.cultivating .third-eye {
-  animation: eyePulse 1s ease-in-out infinite;
-}
-
-@keyframes eyePulse {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
 }
