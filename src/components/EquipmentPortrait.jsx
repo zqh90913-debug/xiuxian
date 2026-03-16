@@ -75,9 +75,15 @@ export default function EquipmentPortrait({ itemId, className = '' }) {
 
   const color = getPillGradeColor(item.grade)
   const v = hashCode(itemId) % 3
+  const gradeLabel = item.grade != null ? `${item.grade}品` : ''
+  const title = item.name ? (gradeLabel ? `${item.name}（${gradeLabel}）` : item.name) : itemId
 
   return (
-    <div className={`equip-portrait ${className}`} style={{ '--equip-color': color }}>
+    <div
+      className={`equip-portrait ${className}`}
+      style={{ '--equip-color': color }}
+      title={title}
+    >
       {item.type === ITEM_TYPES.ARMOR ? (
         <ArmorSvg color={color} variant={v} />
       ) : (

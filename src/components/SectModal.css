@@ -1,7 +1,7 @@
 .sect-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -13,6 +13,10 @@
   width: 100%;
   height: 100vh;
   background: var(--wood-dark);
+  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.6)), url('/sect-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   flex-direction: column;
 }
@@ -57,5 +61,255 @@
 .sect-actions {
   margin-top: 0.75rem;
   text-align: right;
+}
+
+.sect-contribution {
+  font-size: 0.9rem;
+  color: var(--gold);
+  margin: 0.4rem 0;
+}
+
+.sect-rank {
+  font-size: 0.9rem;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+
+.sect-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.btn-sect-sub {
+  padding: 0.4rem 0.8rem;
+  background: linear-gradient(180deg, var(--paper) 0%, var(--wood) 100%);
+  border: 1px solid var(--slot-border);
+  border-radius: 4px;
+  color: var(--gold);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn-sect-sub:hover {
+  background: rgba(201, 162, 39, 0.15);
+}
+
+.sect-sub-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sect-sub-header h4 {
+  font-size: 1rem;
+  color: var(--gold);
+  margin: 0;
+}
+
+.sect-tip {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.4rem;
+}
+
+.sect-treasury-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.sect-treasury-layer {
+  padding: 0.6rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.sect-treasury-layer.locked {
+  opacity: 0.85;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.sect-treasury-layer.unlocked {
+  border-color: rgba(201, 162, 39, 0.4);
+}
+
+.sect-layer-title {
+  font-size: 0.95rem;
+  color: var(--gold);
+  margin: 0 0 0.35rem 0;
+}
+
+.sect-layer-lock {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  font-weight: normal;
+  margin-left: 0.25rem;
+}
+
+.sect-layer-desc,
+.sect-layer-empty {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.sect-treasury-list,
+.sect-missions-list,
+.sect-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.sect-treasury-row,
+.sect-mission-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.sect-mission-name {
+  min-width: 5rem;
+}
+
+.sect-mission-reward {
+  color: var(--gold);
+}
+
+.sect-mission-time {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.btn-sect-start {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+  background: rgba(201, 162, 39, 0.2);
+  border: 1px solid var(--slot-border);
+  border-radius: 4px;
+  color: var(--gold);
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.btn-sect-start:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-sect-cancel {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--ink-muted);
+  border-radius: 4px;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.btn-sect-cancel:hover {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.sect-mission-progress-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+  height: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sect-mission-progress-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, var(--gold), rgba(201, 162, 39, 0.6));
+  border-radius: 4px;
+  transition: width 0.1s linear;
+}
+
+.sect-mission-progress-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--ink);
+}
+
+.sect-treasury-name {
+  flex: 1;
+}
+
+.sect-treasury-cost,
+.sect-rank-cost {
+  color: var(--gold);
+  min-width: 5rem;
+}
+
+.sect-treasury-owned {
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.btn-sect-buy,
+.btn-sect-complete,
+.btn-sect-upgrade {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+  background: rgba(201, 162, 39, 0.2);
+  border: 1px solid var(--slot-border);
+  border-radius: 4px;
+  color: var(--gold);
+  cursor: pointer;
+}
+
+.btn-sect-buy:disabled,
+.btn-sect-upgrade:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sect-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.sect-rank-row.current {
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid var(--gold);
+}
+
+.sect-rank-name {
+  flex: 1;
+}
+
+.sect-rank-badge {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
 }
 

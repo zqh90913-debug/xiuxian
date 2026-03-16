@@ -1,0 +1,193 @@
+.game2048 {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem;
+  min-height: 0;
+}
+
+.game2048-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+  max-width: 520px;
+}
+
+.game2048-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.2rem;
+  color: var(--gold);
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.game2048-score {
+  font-size: 0.95rem;
+  color: var(--gold);
+  min-width: 4.5rem;
+}
+
+.game2048-high {
+  font-size: 0.85rem;
+  color: var(--gold);
+  min-width: 4rem;
+}
+
+.btn-2048-back {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.game2048-tip {
+  font-size: 0.85rem;
+  color: var(--ink);
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 6px;
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  width: 100%;
+  max-width: 520px;
+  box-sizing: border-box;
+}
+
+.game2048-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 1;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--slot-border);
+}
+
+.game2048-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  border-radius: 6px;
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  color: var(--ink);
+  transition: transform 0.1s ease-out;
+}
+
+.game2048-cell-empty {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: transparent;
+  color: transparent;
+}
+
+/* 新方块出现：由小放大 */
+.game2048-cell-spawn {
+  animation: game2048-spawn 0.2s ease-out;
+}
+
+@keyframes game2048-spawn {
+  from {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 合并特效：弹一下 */
+.game2048-cell-merge {
+  animation: game2048-merge 0.25s ease-out;
+}
+
+@keyframes game2048-merge {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.game2048-cell-2 { font-size: 1.9rem; background: #f5e6c8; color: #5c4a2a; }
+.game2048-cell-4 { font-size: 1.9rem; background: #e8d4a8; color: #5c4a2a; }
+.game2048-cell-8 { font-size: 1.8rem; background: #d4b86a; color: #3d3200; }
+.game2048-cell-16 { font-size: 1.7rem; background: #c9a227; color: #1a1500; }
+.game2048-cell-32 { font-size: 1.6rem; background: #b8921f; color: #1a1500; }
+.game2048-cell-64 { font-size: 1.5rem; background: #a67c19; color: #fff; }
+.game2048-cell-128 { font-size: 1.35rem; background: #966612; color: #fff; }
+.game2048-cell-256 { font-size: 1.25rem; background: #85500c; color: #fff; }
+.game2048-cell-512 { font-size: 1.15rem; background: #743a06; color: #fff; }
+.game2048-cell-1024 { font-size: 1rem; background: #632500; color: #fff; }
+.game2048-cell-2048 { font-size: 0.9rem; background: #521000; color: #fff; }
+
+.game2048-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.game2048-overlay-inner {
+  background: linear-gradient(180deg, var(--paper) 0%, var(--wood) 100%);
+  border: 2px solid var(--gold);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  min-width: 220px;
+}
+
+.game2048-overlay-title {
+  font-size: 1.1rem;
+  color: var(--gold);
+  margin: 0 0 0.5rem 0;
+}
+
+.game2048-overlay-score {
+  font-size: 1rem;
+  color: var(--ink);
+  margin: 0 0 0.25rem 0;
+}
+
+.game2048-overlay-high {
+  font-size: 0.95rem;
+  color: var(--gold);
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+}
+
+.game2048-overlay-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-2048-again {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  background: rgba(201, 162, 39, 0.3);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  color: var(--gold);
+  cursor: pointer;
+}
+
+.btn-2048-again:hover {
+  background: rgba(201, 162, 39, 0.45);
+}

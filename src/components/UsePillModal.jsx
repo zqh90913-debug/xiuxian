@@ -10,7 +10,7 @@ export default function UsePillModal({ show, item, onClose, onConfirm }) {
   if (!show || !item) return null
 
   const realmName = REALM_NAMES[item.realmIndex] ?? ''
-  const isDirectUse = item.cultivationGain != null && item.cultivationGain > 0
+  const isDirectUseGain = item.cultivationGain != null && item.cultivationGain > 0
 
   return (
     <div className="use-pill-overlay" onClick={onClose}>
@@ -23,9 +23,14 @@ export default function UsePillModal({ show, item, onClose, onConfirm }) {
           {item.name}
         </p>
         <p className="pill-effect">
-          {isDirectUse
-            ? `使用后直接增加 ${item.cultivationGain.toLocaleString()} 修为`
-            : `使用后提升${realmName}突破成功率 +5%`}
+          {item.id === 'cuiti_dan' && '使用后增加 5 点生命上限（最多使用 50 次）'}
+          {item.id === 'xue_dan' && '使用后增加 2 点攻击力（最多使用 50 次）'}
+          {item.id === 'shenxing_dan' && '使用后增加 1 点速度（最多使用 10 次）'}
+          {item.id !== 'cuiti_dan' && item.id !== 'xue_dan' && item.id !== 'shenxing_dan' && (
+            isDirectUseGain
+              ? `使用后直接增加 ${item.cultivationGain.toLocaleString()} 修为`
+              : `使用后提升${realmName}突破成功率 +5%`
+          )}
         </p>
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>取消</button>

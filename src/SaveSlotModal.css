@@ -1,0 +1,134 @@
+.slot-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.slot-modal {
+  width: 90%;
+  max-width: 360px;
+  padding: 1rem;
+}
+
+.slot-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.slot-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--ink-muted, #666);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0.25rem;
+}
+
+.slot-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.slot-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--slot-border, rgba(201, 162, 39, 0.35));
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--ink, #1a1a1a);
+}
+
+.slot-block:hover {
+  background: rgba(201, 162, 39, 0.12);
+  border-color: var(--gold, #c9a227);
+}
+
+.slot-label {
+  font-weight: 500;
+}
+
+.slot-time {
+  font-size: 0.75rem;
+  color: var(--ink-muted, #666);
+}
+
+.slot-empty {
+  font-size: 0.8rem;
+  color: var(--ink-muted, #999);
+}
+
+.slot-block-selected {
+  border-color: var(--gold, #c9a227);
+  background: rgba(201, 162, 39, 0.18);
+}
+
+.slot-block-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.slot-block-disabled:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--slot-border, rgba(201, 162, 39, 0.35));
+}
+
+.slot-modal-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.slot-confirm-btn {
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(180deg, var(--paper) 0%, var(--wood) 100%);
+  border: 1px solid var(--slot-border, rgba(201, 162, 39, 0.35));
+  border-radius: 4px;
+  color: var(--gold, #c9a227);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.slot-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.slot-confirm-btn:not(:disabled):hover {
+  background: rgba(201, 162, 39, 0.15);
+}
+
+.slot-delete-btn {
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(180deg, var(--paper) 0%, var(--wood) 100%);
+  border: 1px solid var(--slot-border, rgba(201, 162, 39, 0.35));
+  border-radius: 4px;
+  color: var(--ink-muted, #666);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.slot-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.slot-delete-btn:not(:disabled):hover {
+  color: #a22;
+  background: rgba(160, 34, 34, 0.1);
+}

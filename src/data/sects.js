@@ -23,6 +23,23 @@ export const SECT_LEVEL_LABEL = {
   5: '五阶宗门',
 }
 
+/** 宗门职位（所有宗门统一）：从低到高 */
+export const SECT_RANKS = [
+  { id: 0, name: '记名弟子', upgradeCost: 0 },
+  { id: 1, name: '外门弟子', upgradeCost: 80 },
+  { id: 2, name: '内门弟子', upgradeCost: 200 },
+  { id: 3, name: '真传弟子', upgradeCost: 450 },
+  { id: 4, name: '执事', upgradeCost: 800 },
+  { id: 5, name: '堂主', upgradeCost: 1300 },
+  { id: 6, name: '长老', upgradeCost: 2000 },
+  { id: 7, name: '大长老', upgradeCost: 3000 },
+  { id: 8, name: '宗主', upgradeCost: 5000 },
+]
+
+export function getSectRankById(id) {
+  return SECT_RANKS.find((r) => r.id === id) ?? SECT_RANKS[0]
+}
+
 // 简单设置：一阶~五阶宗门需要的最低大境界索引（0=练气，1=筑基，2=金丹，3=元婴，4=化神）
 export const SECT_LEVEL_MIN_REALM_INDEX = {
   1: 0,

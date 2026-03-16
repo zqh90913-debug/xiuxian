@@ -21,6 +21,8 @@ export default function RegionSceneModal({
   onBanditFight,
   onBanditPay,
   onBanditEscape,
+  battleState = null,
+  onBattleNextTurn,
 }) {
   const [exploring, setExploring] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -179,8 +181,59 @@ export default function RegionSceneModal({
               </div>
             </div>
 
-            {renderBanditCard()}
+            {!battleState && renderBanditCard()}
             {renderSectCard()}
+
+            {battleState && (
+              <div className="region-battle-panel gu-panel">
+                <h4 className="region-panel-title">战斗</h4>
+                <div className="region-battle-layout">
+                  <div className="battle-side enemy">
+                    <div className="battle-avatar enemy-avatar">
+                      <div className="battle-hp-bar">
+                        <div
+                          className="battle-hp-fill enemy"
+                          style={{ width: `${(battleState.enemyHp / battleState.enemyHpMax) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="battle-name">敌方：{battleState.enemyName}</div>
+                  </div>
+                  <div className="battle-center">
+                    <button
+                      type="button"
+                      className="btn-region primary"
+                      disabled={battleState.finished}
+                      onClick={onBattleNextTurn}
+                    >
+                      {battleState.finished ? '战斗结束' : (battleState.turn === 'player' ? '出手攻击' : '承受攻击')}
+                    </button>
+                    <div className="battle-turn">
+                      当前回合：{battleState.turn === 'player' ? '你' : '对方'}
+                    </div>
+                  </div>
+                  <div className="battle-side player">
+                    <div className="battle-avatar player-avatar">
+                      <img src="/main-character.png" alt="主角" className="battle-player-image" />
+                      <div className="battle-hp-bar">
+                        <div
+                          className="battle-hp-fill player"
+                          style={{ width: `${(battleState.playerHp / battleState.playerHpMax) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="battle-name">我方</div>
+                  </div>
+                </div>
+                <div className="battle-log">
+                  {(battleState.log ?? []).slice(-4).map((line, idx) => (
+                    <div key={idx} className="battle-log-line">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="region-right gu-panel">

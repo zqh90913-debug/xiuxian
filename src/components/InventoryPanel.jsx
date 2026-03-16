@@ -4,7 +4,7 @@
  * 突破丹在突破界面使用，直接使用丹（如凝气丹）点击使用，法宝点击可装备
  */
 import { useState } from 'react'
-import { inventoryToStacks, getItemById, getPillGradeColor, ITEM_TYPES } from '../data/items'
+import { inventoryToStacks, getItemById, getPillGradeColor, ITEM_TYPES, getGradeLabel } from '../data/items'
 import PillPortrait from './PillPortrait'
 import EquipmentPortrait from './EquipmentPortrait'
 import EquipWeaponModal from './EquipWeaponModal'
@@ -16,7 +16,18 @@ const ROWS = 6
 const PAGES = 20
 const SLOTS_PER_PAGE = COLS * ROWS
 
-export default function InventoryPanel({ inventory = {}, equipment, onEquipWeapon, onUnequipWeapon, onEquipArmor, onUseDirectPill }) {
+export default function InventoryPanel({
+  inventory = {},
+  equipment,
+  onEquipWeapon,
+  onUnequipWeapon,
+  onEquipArmor,
+  onUseDirectPill,
+  onSortInventory,
+  cuitiUsedCount = 0,
+  xueUsedCount = 0,
+  shenxingUsedCount = 0,
+}) {
   const [page, setPage] = useState(0)
   const [equipWeaponStack, setEquipWeaponStack] = useState(null)
   const [usePillStack, setUsePillStack] = useState(null)
@@ -30,9 +41,18 @@ export default function InventoryPanel({ inventory = {}, equipment, onEquipWeapo
     <div className="inventory-panel gu-panel">
       <div className="inventory-header">
         <h3 className="panel-title">背包</h3>
-        <span className="page-info">
-          {page + 1} / {PAGES}
-        </span>
+        <div className="inventory-header-right">
+          <button
+            type="button"
+            className="btn-inv-sort"
+            onClick={() => onSortInventory && onSortInventory()}
+          >
+            一键整理
+          </button>
+          <span className="page-info">
+            {page + 1} / {PAGES}
+          </span>
+        </div>
       </div>
       <div
         className="inventory-grid"
@@ -45,18 +65,36 @@ export default function InventoryPanel({ inventory = {}, equipment, onEquipWeapo
           }
           const item = getItemById(stack.itemId)
           const isPill = item?.type === ITEM_TYPES.PILL
-          const isDirectUsePill = isPill && item?.cultivationGain != null && item.cultivationGain > 0
+          const isDirectUsePill = isPill && (item?.cultivationGain != null || item?.directUse)
           const isWeapon = item?.type === ITEM_TYPES.WEAPON
           const isArmor = item?.type === ITEM_TYPES.ARMOR
           const isMaterial = item?.type === ITEM_TYPES.MATERIAL
           const color = (isPill || isWeapon || isArmor) ? getPillGradeColor(item.grade) : (isMaterial && item.tier ? getPillGradeColor(item.tier) : undefined)
-          const pillTitle = isDirectUsePill ? '点击使用' : '突破时在突破界面使用'
+          let pillTitle = isDirectUsePill ? '点击使用' : '突破时在突破界面使用'
+          if (isPill && item?.id === 'cuiti_dan') pillTitle = `点击使用（已用 ${cuitiUsedCount}/50）`
+          if (isPill && item?.id === 'xue_dan') pillTitle = `点击使用（已用 ${xueUsedCount}/50）`
+          if (isPill && item?.id === 'shenxing_dan') pillTitle = `点击使用（已用 ${shenxingUsedCount}/10）`
+          const gradeLabel = item?.grade != null ? getGradeLabel(item.grade) : undefined
+          const baseTitle = item?.name ?? stack.itemId
+          const fullTitle = gradeLabel && (isPill || isWeapon || isArmor)
+            ? `${baseTitle}（${gradeLabel}）`
+            : baseTitle
           return (
             <div
               key={`${stack.itemId}-${i}`}
               className={`inv-slot has-item ${isPill ? 'pill' : ''} ${isWeapon ? 'weapon' : ''} ${isArmor ? 'armor' : ''} ${isMaterial ? 'material' : ''}`}
               style={color ? { borderColor: color } : undefined}
-              title={isPill ? pillTitle : isWeapon ? '点击装备法宝' : isArmor ? '点击装备防具' : isMaterial ? '炼丹材料' : undefined}
+              title={
+                isPill
+                  ? `${fullTitle}｜${pillTitle}`
+                  : isWeapon
+                    ? `${fullTitle}｜点击装备法宝`
+                    : isArmor
+                      ? `${fullTitle}｜点击装备防具`
+                      : isMaterial
+                        ? `${fullTitle}｜炼丹材料`
+                        : fullTitle
+              }
               onClick={() => {
                 if (isWeapon && onEquipWeapon) setEquipWeaponStack(stack)
                 else if (isArmor && onEquipArmor) setEquipArmorStack(stack)
@@ -65,7 +103,7 @@ export default function InventoryPanel({ inventory = {}, equipment, onEquipWeapo
             >
               {isPill && <PillPortrait itemId={stack.itemId} grade={item.grade} />}
               {(isWeapon || isArmor) && <EquipmentPortrait itemId={stack.itemId} />}
-              <span className="item-preview" title={item?.name ?? stack.itemId}>
+              <span className="item-preview" title={fullTitle}>
                 {item?.name ?? stack.itemId}
               </span>
               {stack.count > 1 && (

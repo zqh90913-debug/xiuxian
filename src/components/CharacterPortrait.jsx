@@ -3,9 +3,12 @@
  */
 import './CharacterPortrait.css'
 
-export default function CharacterPortrait({ isCultivating }) {
+export default function CharacterPortrait({ isCultivating, onToggleStats }) {
   return (
-    <div className={`character-portrait ${isCultivating ? 'cultivating' : ''}`}>
+    <div
+      className={`character-portrait ${isCultivating ? 'cultivating' : ''}`}
+      onClick={onToggleStats}
+    >
       <div className="portrait-glow" />
       {isCultivating && (
         <>

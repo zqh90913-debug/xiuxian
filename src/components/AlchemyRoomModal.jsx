@@ -2,7 +2,7 @@
  * 炼丹房：上半炼制区（已学丹方对应丹药 + 丹炉槽），下半丹方区（使用丹方解锁炼制）
  */
 import { useState, useEffect } from 'react'
-import { getItemById, getPillGradeColor } from '../data/items'
+import { getItemById, getPillGradeColor, getGradeLabel } from '../data/items'
 import {
   getRecipe,
   getFurnace,
@@ -111,12 +111,18 @@ export default function AlchemyRoomModal({
                   const materialText = Object.entries(materials).length === 0
                     ? '无'
                     : Object.entries(materials).map(([mid, n]) => `${getItemById(mid)?.name ?? mid}×${n}`).join('、')
+                  const gradeLabel = pill.grade != null ? getGradeLabel(pill.grade) : ''
                   return (
                     <div key={pillId} className="alchemy-craft-card">
-                      <PillPortrait itemId={pillId} grade={pill.grade} className="alchemy-pill-portrait" />
+                      <PillPortrait
+                        itemId={pillId}
+                        grade={pill.grade}
+                        className="alchemy-pill-portrait"
+                      />
                       <div className="alchemy-craft-info">
                         <span className="alchemy-pill-name" style={{ color: getPillGradeColor(pill.grade) }}>
                           {pill.name}
+                          {gradeLabel && `（${gradeLabel}）`}
                         </span>
                         <span className="alchemy-craft-meta">所需材料：{materialText}</span>
                         <span className="alchemy-craft-meta">成功率：{successRate}%</span>

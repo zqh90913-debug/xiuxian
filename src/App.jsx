@@ -7,6 +7,7 @@ import {
   getRealmDisplayName,
   getAttack,
   getHp,
+  getSpeed,
 } from './data/cultivation'
 import CharacterPortrait from './components/CharacterPortrait'
 import CultivationProgress from './components/CultivationProgress'
@@ -22,7 +23,7 @@ import DebatePavilionModal from './components/DebatePavilionModal'
 import BingyanModal from './components/BingyanModal'
 import RegionSceneModal from './components/RegionSceneModal'
 import SectModal from './components/SectModal'
-import { REGIONS, REGION_NAME_MAP, getRandomSectForRegion } from './data/sects'
+import { REGIONS, REGION_NAME_MAP, getRandomSectForRegion, SECT_RANKS } from './data/sects'
 import { INITIAL_AVAILABLE_TECHNIQUES, getTechniqueById } from './data/techniques'
 import {
   INITIAL_OWNED_RECIPES,
@@ -34,14 +35,21 @@ import {
   deductCraftMaterials,
 } from './data/alchemy'
 import RedeemCodeModal from './components/RedeemCodeModal'
-import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, removeFromInventory, SHOP_ITEM_IDS, WEAPON_IDS, getWeaponAttackBonus, getPillCultivationGain, getArmorHpBonus, ITEM_TYPES, MATERIAL_SHOP_COUNT, MATERIAL_IDS } from './data/items'
+import SaveSlotModal from './SaveSlotModal'
+import LoadSlotModal from './LoadSlotModal'
+import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, removeFromInventory, SHOP_ITEM_IDS, WEAPON_IDS, ARMOR_IDS, getWeaponAttackBonus, getPillCultivationGain, getArmorHpBonus, ITEM_TYPES, MATERIAL_SHOP_COUNT, MATERIAL_IDS } from './data/items'
 import './App.css'
 
 const CULTIVATION_DURATION_MS = 10000
 const STORAGE_KEY = 'xiuxian_save'
 const AUTO_CULTIVATE_KEY = 'xiuxian_auto_cultivate'
-const SHOP_REFRESH_MS = 24 * 60 * 60 * 1000
-const SHOP_SLOTS = 6
+const SAVE_SLOTS_COUNT = 8
+
+function getSaveSlotKey(index) {
+  return `xiuxian_slot_${index}`
+}
+const SHOP_REFRESH_MS = 12 * 60 * 60 * 1000
+const SHOP_SLOTS = 12
 const SHOP_REFRESH_COST = 20
 
 function pickRandomShopItems(count) {
@@ -72,38 +80,38 @@ function normalizeEquipmentArmors(a) {
   })
 }
 
-function loadSave() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const data = JSON.parse(raw)
-      if (data.realmIndex != null && data.layer != null && data.cultivation != null) {
-        return {
-          realmIndex: data.realmIndex,
-          layer: data.layer,
-          cultivation: data.cultivation,
-          equipment: {
-            weapons: normalizeEquipmentWeapons(data.equipment?.weapons),
-            armors: normalizeEquipmentArmors(data.equipment?.armors),
-          },
-          inventory: normalizeInventory(data.inventory ?? {}),
-          bigRealmBreakCount: data.bigRealmBreakCount ?? 0,
-          spiritStones: data.spiritStones ?? 0,
-          pillSuccessBonus: data.pillSuccessBonus ?? {},
-          shopLastRefreshTime: data.shopLastRefreshTime ?? 0,
-          shopItems: Array.isArray(data.shopItems) ? data.shopItems : pickRandomShopItems(SHOP_SLOTS),
-          learnedTechs: Array.isArray(data.learnedTechs) ? data.learnedTechs : [],
-          availableTechs: Array.isArray(data.availableTechs) ? data.availableTechs : INITIAL_AVAILABLE_TECHNIQUES,
-          ownedRecipes: Array.isArray(data.ownedRecipes) ? data.ownedRecipes : INITIAL_OWNED_RECIPES,
-          // 丹方使用后永久生效，已学会的炼丹配方会随存档一同保留
-          learnedRecipes: Array.isArray(data.learnedRecipes) ? data.learnedRecipes : [],
-          ownedFurnaces: Array.isArray(data.ownedFurnaces) ? data.ownedFurnaces : INITIAL_OWNED_FURNACES,
-          equippedFurnaceId: data.equippedFurnaceId ?? null,
-          joinedSect: data.joinedSect ?? null,
-        }
-      }
-    }
-  } catch (_) {}
+function normalizeSaveData(data) {
+  if (!data || data.realmIndex == null || data.layer == null || data.cultivation == null) return null
+  return {
+    realmIndex: data.realmIndex,
+    layer: data.layer,
+    cultivation: data.cultivation,
+    equipment: {
+      weapons: normalizeEquipmentWeapons(data.equipment?.weapons),
+      armors: normalizeEquipmentArmors(data.equipment?.armors),
+    },
+    inventory: normalizeInventory(data.inventory ?? {}),
+    bigRealmBreakCount: data.bigRealmBreakCount ?? 0,
+    spiritStones: data.spiritStones ?? 0,
+    pillSuccessBonus: data.pillSuccessBonus ?? {},
+    shopLastRefreshTime: data.shopLastRefreshTime ?? 0,
+    shopItems: Array.isArray(data.shopItems) ? data.shopItems : pickRandomShopItems(SHOP_SLOTS),
+    learnedTechs: Array.isArray(data.learnedTechs) ? data.learnedTechs : [],
+    availableTechs: Array.isArray(data.availableTechs) ? data.availableTechs : INITIAL_AVAILABLE_TECHNIQUES,
+    ownedRecipes: Array.isArray(data.ownedRecipes) ? data.ownedRecipes : INITIAL_OWNED_RECIPES,
+    learnedRecipes: Array.isArray(data.learnedRecipes) ? data.learnedRecipes : [],
+    ownedFurnaces: Array.isArray(data.ownedFurnaces) ? data.ownedFurnaces : INITIAL_OWNED_FURNACES,
+    equippedFurnaceId: data.equippedFurnaceId ?? null,
+    joinedSect: data.joinedSect ?? null,
+    sectContribution: data.sectContribution ?? 0,
+    sectRankIndex: data.sectRankIndex ?? 0,
+    cuitiUsedCount: data.cuitiUsedCount ?? 0,
+    xueUsedCount: data.xueUsedCount ?? 0,
+    shenxingUsedCount: data.shenxingUsedCount ?? 0,
+  }
+}
+
+function getDefaultState() {
   return {
     realmIndex: 0,
     layer: 1,
@@ -122,12 +130,29 @@ function loadSave() {
     ownedFurnaces: INITIAL_OWNED_FURNACES,
     equippedFurnaceId: null,
     joinedSect: null,
+    sectContribution: 0,
+    sectRankIndex: 0,
+    cuitiUsedCount: 0,
+    xueUsedCount: 0,
+    shenxingUsedCount: 0,
   }
 }
 
-function saveGame(state) {
+function loadSave() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const data = JSON.parse(raw)
+      return normalizeSaveData(data) ?? getDefaultState()
+    }
+  } catch (_) {}
+  return getDefaultState()
+}
+
+function saveToSlot(state, index) {
+  try {
+    const payload = {
+      savedAt: Date.now(),
       realmIndex: state.realmIndex,
       layer: state.layer,
       cultivation: state.cultivation,
@@ -145,12 +170,43 @@ function saveGame(state) {
       ownedFurnaces: state.ownedFurnaces ?? INITIAL_OWNED_FURNACES,
       equippedFurnaceId: state.equippedFurnaceId ?? null,
       joinedSect: state.joinedSect ?? null,
-    }))
-  } catch (_) {}
+      sectContribution: state.sectContribution ?? 0,
+      sectRankIndex: state.sectRankIndex ?? 0,
+      cuitiUsedCount: state.cuitiUsedCount ?? 0,
+      xueUsedCount: state.xueUsedCount ?? 0,
+      shenxingUsedCount: state.shenxingUsedCount ?? 0,
+    }
+    localStorage.setItem(getSaveSlotKey(index), JSON.stringify(payload))
+    return true
+  } catch (_) {
+    return false
+  }
+}
+
+function loadFromSlot(index) {
+  try {
+    const raw = localStorage.getItem(getSaveSlotKey(index))
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    return normalizeSaveData(data)
+  } catch (_) {
+    return null
+  }
+}
+
+function getSlotInfo(index) {
+  try {
+    const raw = localStorage.getItem(getSaveSlotKey(index))
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    return { savedAt: data.savedAt }
+  } catch (_) {
+    return null
+  }
 }
 
 function App() {
-  const [state, setState] = useState(loadSave)
+  const [state, setState] = useState(getDefaultState)
   const [progress, setProgress] = useState(0)
   const [isCultivating, setIsCultivating] = useState(false)
   const [showBreakthrough, setShowBreakthrough] = useState(false)
@@ -163,10 +219,13 @@ function App() {
   const [showBingyan, setShowBingyan] = useState(false)
   const [showRegionScene, setShowRegionScene] = useState(false)
   const [showSectModal, setShowSectModal] = useState(false)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showLoadModal, setShowLoadModal] = useState(false)
   const [currentRegionId, setCurrentRegionId] = useState(null)
   const [regionLogs, setRegionLogs] = useState({})
   const [pendingSect, setPendingSect] = useState(null)
   const [pendingBandit, setPendingBandit] = useState(null)
+  const banditPayGuardRef = useRef(false)
   const [breakthroughFailed, setBreakthroughFailed] = useState(false)
   const [lastGain, setLastGain] = useState(0)
   const [autoCultivate, setAutoCultivate] = useState(() => {
@@ -180,6 +239,9 @@ function App() {
   const [exploreWindowStart, setExploreWindowStart] = useState(() => Date.now())
   const [exploreUsed, setExploreUsed] = useState(0)
   const [exploreExtra, setExploreExtra] = useState(0)
+  const [showCharacterStats, setShowCharacterStats] = useState(false)
+  const [battleState, setBattleState] = useState(null)
+  const [battleReward, setBattleReward] = useState(null)
 
   useEffect(() => {
     if (lastGain > 0) {
@@ -187,6 +249,12 @@ function App() {
       return () => clearTimeout(t)
     }
   }, [lastGain])
+
+  useEffect(() => {
+    if (!battleReward) return
+    const t = setTimeout(() => setBattleReward(null), 3000)
+    return () => clearTimeout(t)
+  }, [battleReward])
 
   useEffect(() => {
     try {
@@ -213,6 +281,11 @@ function App() {
     equippedFurnaceId = null,
     lastCraftResult = null,
     joinedSect = null,
+    sectContribution = 0,
+    sectRankIndex = 0,
+    cuitiUsedCount = 0,
+    xueUsedCount = 0,
+    shenxingUsedCount = 0,
   } = state
   const isMaxRealm = realmIndex === REALMS.length - 1 && layer === LAYERS_PER_REALM
 
@@ -232,15 +305,12 @@ function App() {
   const equipmentAttackBonus = (equipment?.weapons ?? [])
     .filter(Boolean)
     .reduce((sum, s) => sum + getWeaponAttackBonus(s.itemId), 0)
-  const attack = getAttack(realmIndex, layer, equipmentAttackBonus)
+  const attack = getAttack(realmIndex, layer, equipmentAttackBonus + xueUsedCount * 2)
   const armorHpBonus = (equipment?.armors ?? [])
     .filter(Boolean)
     .reduce((sum, s) => sum + (getArmorHpBonus ? getArmorHpBonus(s.itemId) : 0), 0)
-  const hp = getHp(realmIndex, layer) + armorHpBonus
-
-  useEffect(() => {
-    saveGame(state)
-  }, [state])
+  const hp = getHp(realmIndex, layer) + armorHpBonus + cuitiUsedCount * 5
+  const speed = getSpeed(realmIndex, layer) + shenxingUsedCount * 1
 
   useEffect(() => {
     if (!showTreasurePavilion) return
@@ -444,20 +514,56 @@ function App() {
     })
   }, [])
 
-  /** 使用直接增加修为的丹药（如凝气丹），修为不超过当前突破所需 */
+  /** 使用直接类丹药：
+   * - 凝气丹：直接增加修为（不超过当前突破所需）
+   * - 淬体丹 / 血丹 / 神行丹：增加血量 / 攻击 / 速度，使用次数有限
+   */
   const handleUseDirectPill = useCallback((itemId) => {
-    const gain = getPillCultivationGain(itemId)
-    if (gain <= 0) return
     setState((s) => {
       const inv = s.inventory ?? {}
       if ((inv[itemId] ?? 0) < 1) return s
-      const req = s.layer === LAYERS_PER_REALM ? getBreakthroughRequired(s.realmIndex + 1, 1) : getBreakthroughRequired(s.realmIndex, s.layer + 1)
-      const newCultivation = Math.min(s.cultivation + gain, req)
-      return {
-        ...s,
-        cultivation: newCultivation,
-        inventory: removeFromInventory(inv, itemId, 1),
+      const gain = getPillCultivationGain(itemId)
+      // 凝气丹：增加修为
+      if (gain > 0) {
+        const req = s.layer === LAYERS_PER_REALM
+          ? getBreakthroughRequired(s.realmIndex + 1, 1)
+          : getBreakthroughRequired(s.realmIndex, s.layer + 1)
+        const newCultivation = Math.min(s.cultivation + gain, req)
+        return {
+          ...s,
+          cultivation: newCultivation,
+          inventory: removeFromInventory(inv, itemId, 1),
+        }
       }
+      // 淬体丹 / 血丹 / 神行丹：有限次数加成
+      if (itemId === 'cuiti_dan') {
+        const used = s.cuitiUsedCount ?? 0
+        if (used >= 50) return s
+        return {
+          ...s,
+          cuitiUsedCount: used + 1,
+          inventory: removeFromInventory(inv, itemId, 1),
+        }
+      }
+      if (itemId === 'xue_dan') {
+        const used = s.xueUsedCount ?? 0
+        if (used >= 50) return s
+        return {
+          ...s,
+          xueUsedCount: used + 1,
+          inventory: removeFromInventory(inv, itemId, 1),
+        }
+      }
+      if (itemId === 'shenxing_dan') {
+        const used = s.shenxingUsedCount ?? 0
+        if (used >= 10) return s
+        return {
+          ...s,
+          shenxingUsedCount: used + 1,
+          inventory: removeFromInventory(inv, itemId, 1),
+        }
+      }
+      return s
     })
   }, [])
 
@@ -493,6 +599,23 @@ function App() {
       }
       return { ...s, inventory: inv }
     })
+  }, [])
+
+  const handleRedeemPills = useCallback((pillCounts) => {
+    setState((s) => {
+      let inv = s.inventory ?? {}
+      for (const [pillId, count] of Object.entries(pillCounts)) {
+        if (count > 0) inv = addToInventory(inv, pillId, count)
+      }
+      return { ...s, inventory: inv }
+    })
+  }, [])
+
+  const handleRedeemContribution = useCallback((amount) => {
+    setState((s) => ({
+      ...s,
+      sectContribution: (s.sectContribution ?? 0) + amount,
+    }))
   }, [])
 
   const handleEnterRegion = useCallback((regionId) => {
@@ -546,7 +669,21 @@ function App() {
     }
     // 打劫事件
     if (roll < 0.88) {
-      const enemyRealmIndex = Math.floor(Math.random() * REALMS.length)
+      // 敌人境界：更倾向于 主角同境界、低一境界或高一境界，其它境界也有较小概率
+      const offsets = [0, -1, 1, -2, 2, -3, 3]
+      const weights = [0.4, 0.2, 0.2, 0.08, 0.08, 0.02, 0.02]
+      const r = Math.random()
+      let acc = 0
+      let pickedOffset = 0
+      for (let i = 0; i < offsets.length; i += 1) {
+        acc += weights[i]
+        if (r <= acc) {
+          pickedOffset = offsets[i]
+          break
+        }
+      }
+      const candidate = realmIndex + pickedOffset
+      const enemyRealmIndex = Math.min(REALMS.length - 1, Math.max(0, candidate))
       const enemyRealmName = REALMS[enemyRealmIndex]
       setPendingBandit({ regionId, enemyRealmIndex, enemyRealmName })
       appendRegionLog(
@@ -617,32 +754,73 @@ function App() {
   }, [appendRegionLog, currentRegionId, pendingBandit, realmIndex])
 
   const handleBanditFight = useCallback(() => {
-    resolveBanditFight(false)
-  }, [resolveBanditFight])
+    if (!pendingBandit || !currentRegionId) return
+    const { enemyRealmIndex, enemyRealmName } = pendingBandit
+    // 敌方基础属性按其境界计算，再加少量随机浮动
+    const enemyBaseAttack = getAttack(enemyRealmIndex, Math.min(LAYERS_PER_REALM, layer + 1), 0)
+    const enemyBaseHp = getHp(enemyRealmIndex, Math.min(LAYERS_PER_REALM, layer + 1))
+    const enemyBaseSpeed = getSpeed(enemyRealmIndex, Math.min(LAYERS_PER_REALM, layer + 1))
+
+    // 随机 4 件法器和 4 件防具加成
+    const shuffledWeapons = [...WEAPON_IDS].sort(() => Math.random() - 0.5)
+    const shuffledArmors = [...ARMOR_IDS].sort(() => Math.random() - 0.5)
+    const weaponBonus = shuffledWeapons.slice(0, 4).reduce((sum, id) => sum + getWeaponAttackBonus(id), 0)
+    const armorBonus = shuffledArmors.slice(0, 4).reduce((sum, id) => sum + getArmorHpBonus(id), 0)
+
+    const enemyAttack = Math.floor(enemyBaseAttack * (0.9 + Math.random() * 0.4)) + weaponBonus
+    const enemyHpMax = Math.floor(enemyBaseHp * (0.9 + Math.random() * 0.4)) + armorBonus
+    const enemySpeed = Math.max(5, Math.floor(enemyBaseSpeed * (0.9 + Math.random() * 0.4)))
+
+    const playerHpMax = hp
+    const playerSpeed = speed
+
+    const firstTurn = playerSpeed >= enemySpeed ? 'player' : 'enemy'
+
+    setBattleState({
+      source: 'bandit',
+      enemyName: `拦路修士（${enemyRealmName}）`,
+      enemyAttack,
+      enemyHpMax,
+      enemyHp: enemyHpMax,
+      enemySpeed,
+      playerAttack: attack,
+      playerHpMax,
+      playerHp: playerHpMax,
+      playerSpeed,
+      turn: firstTurn,
+      finished: false,
+      winner: null,
+      log: [`你与一名「${enemyRealmName}」修士交战，战斗开始！`],
+    })
+  }, [pendingBandit, currentRegionId, attack, hp, speed, layer])
+
+  useEffect(() => {
+    if (!pendingBandit) banditPayGuardRef.current = false
+  }, [pendingBandit])
 
   const handleBanditPay = useCallback(() => {
     if (!pendingBandit) return
-    const { enemyRealmName } = pendingBandit
-    setState((s) => {
-      const cur = s.spiritStones ?? 0
-      if (cur < 1000) {
-        appendRegionLog(
-          currentRegionId,
-          `你想以破财消灾，却发现灵石不足，对方冷笑不语，似乎并不打算就此罢手。`,
-        )
-        return s
-      }
+    if (banditPayGuardRef.current) return // 防止重复触发，只执行一次
+    const cur = spiritStones ?? 0
+    if (cur < 1000) {
       appendRegionLog(
         currentRegionId,
-        `你咬牙交出一袋 1000 枚灵石，这名「${enemyRealmName}」修士满意离去。`,
+        `你想以破财消灾，却发现灵石不足，对方冷笑不语，似乎并不打算就此罢手。`,
       )
-      return {
-        ...s,
-        spiritStones: cur - 1000,
-      }
-    })
+      return
+    }
+    banditPayGuardRef.current = true
+    const { enemyRealmName } = pendingBandit
     setPendingBandit(null)
-  }, [appendRegionLog, currentRegionId, pendingBandit])
+    appendRegionLog(
+      currentRegionId,
+      `你咬牙交出一袋 1000 枚灵石，这名「${enemyRealmName}」修士满意离去。`,
+    )
+    setState((s) => ({
+      ...s,
+      spiritStones: (s.spiritStones ?? 0) - 1000,
+    }))
+  }, [appendRegionLog, currentRegionId, pendingBandit, spiritStones])
 
   const handleBanditEscape = useCallback(() => {
     if (!pendingBandit) return
@@ -662,8 +840,90 @@ function App() {
       currentRegionId,
       `你试图逃离，却被这名「${enemyRealmName}」修士死死缠住，被迫迎战！`,
     )
-    resolveBanditFight(true)
-  }, [appendRegionLog, currentRegionId, pendingBandit, resolveBanditFight])
+    handleBanditFight()
+  }, [appendRegionLog, currentRegionId, pendingBandit, handleBanditFight])
+
+  const handleBattleNextTurn = useCallback(() => {
+    setBattleState((state) => {
+      if (!state || state.finished) return state
+      const log = [...(state.log ?? [])]
+      let { playerHp, enemyHp, turn } = state
+
+      if (turn === 'player') {
+        enemyHp = Math.max(0, enemyHp - state.playerAttack)
+        log.push(`你出手攻击，造成 ${state.playerAttack} 伤害。`)
+        turn = 'enemy'
+      } else {
+        playerHp = Math.max(0, playerHp - state.enemyAttack)
+        log.push(`对方出手攻击，造成 ${state.enemyAttack} 伤害。`)
+        turn = 'player'
+      }
+
+      let finished = false
+      let winner = null
+      if (enemyHp <= 0 || playerHp <= 0) {
+        finished = true
+        if (enemyHp <= 0 && playerHp > 0) {
+          winner = 'player'
+          log.push('你击败了对手。')
+        } else if (playerHp <= 0 && enemyHp > 0) {
+          winner = 'enemy'
+          log.push('你不敌对手，被击倒在地。')
+        } else {
+          winner = 'draw'
+          log.push('双方几乎同时倒下，勉强算作平手。')
+        }
+      }
+
+      return {
+        ...state,
+        playerHp,
+        enemyHp,
+        turn,
+        finished,
+        winner,
+        log,
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!battleState || !battleState.finished || battleState.source !== 'bandit' || !pendingBandit || !currentRegionId) return
+
+    const { enemyRealmName, enemyRealmIndex } = pendingBandit
+    if (battleState.winner === 'player' || battleState.winner === 'draw') {
+      const rewardStones = 200 * (enemyRealmIndex + 1)
+      setState((s) => ({
+        ...s,
+        spiritStones: (s.spiritStones ?? 0) + rewardStones,
+      }))
+      setBattleReward({ type: 'win', stones: rewardStones })
+      appendRegionLog(
+        currentRegionId,
+        `你与这名「${enemyRealmName}」修士大战数招，最终将其击退，对方狼狈遁走，缴获 ${rewardStones} 枚灵石。`,
+      )
+    } else if (battleState.winner === 'enemy') {
+      setState((s) => {
+        const cur = s.spiritStones ?? 0
+        const loss = Math.floor(cur / 2)
+        return {
+          ...s,
+          spiritStones: cur - loss,
+        }
+      })
+      const curStones = spiritStones ?? 0
+      const lossNow = Math.floor(curStones / 2)
+      if (lossNow > 0) {
+        setBattleReward({ type: 'lose', loss: lossNow })
+      }
+      appendRegionLog(
+        currentRegionId,
+        `你不敌这名「${enemyRealmName}」修士，被迫交出一半随身灵石后才得以脱身。`,
+      )
+    }
+    setBattleState(null)
+    setPendingBandit(null)
+  }, [battleState, pendingBandit, currentRegionId, appendRegionLog])
 
   const handleJoinSect = useCallback(() => {
     if (!pendingSect) return
@@ -676,10 +936,58 @@ function App() {
     setState((s) => ({
       ...s,
       joinedSect: pendingSect,
+      sectContribution: 0,
+      sectRankIndex: 0,
     }))
     appendRegionLog(currentRegionId, `你正式拜入「${pendingSect.name}」，成为其门下弟子。`)
     setPendingSect(null)
   }, [pendingSect, realmIndex, currentRegionId, appendRegionLog])
+
+  const handleAddContribution = useCallback((amount) => {
+    setState((s) => ({
+      ...s,
+      sectContribution: (s.sectContribution ?? 0) + amount,
+    }))
+  }, [])
+
+  const handleUpgradeRank = useCallback(() => {
+    setState((s) => {
+      const cur = s.sectRankIndex ?? 0
+      const next = SECT_RANKS[cur + 1]
+      if (!next) return s
+      const contrib = s.sectContribution ?? 0
+      if (contrib < next.upgradeCost) return s
+      return {
+        ...s,
+        sectContribution: contrib - next.upgradeCost,
+        sectRankIndex: cur + 1,
+      }
+    })
+  }, [])
+
+  const handleBuyTreasuryItem = useCallback((type, id, cost) => {
+    setState((s) => {
+      const contrib = s.sectContribution ?? 0
+      if (contrib < cost) return s
+      if (type === 'technique') {
+        const learned = s.learnedTechs ?? []
+        if (learned.includes(id)) return s
+        return {
+          ...s,
+          sectContribution: contrib - cost,
+          learnedTechs: [...learned, id],
+        }
+      }
+      if (type === 'weapon' || type === 'armor') {
+        return {
+          ...s,
+          sectContribution: contrib - cost,
+          inventory: addToInventory(s.inventory ?? {}, id, 1),
+        }
+      }
+      return s
+    })
+  }, [])
 
   const handleBuyExploreChance = useCallback((regionId) => {
     setState((s) => {
@@ -805,9 +1113,33 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>修仙传</h1>
-        <p className="subtitle">问道长生</p>
+        <div className="header-left">
+          <button type="button" className="btn-save-load" onClick={() => setShowSaveModal(true)}>存档</button>
+          <button type="button" className="btn-save-load" onClick={() => setShowLoadModal(true)}>读档</button>
+        </div>
+        <div className="header-center">
+          <h1>修仙传</h1>
+          <p className="subtitle">问道长生</p>
+        </div>
       </header>
+      <SaveSlotModal
+        show={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        slotCount={SAVE_SLOTS_COUNT}
+        getSlotInfo={getSlotInfo}
+        onSaveToSlot={(index) => saveToSlot(state, index)}
+        onDeleteSlot={(index) => localStorage.removeItem(getSaveSlotKey(index))}
+      />
+      <LoadSlotModal
+        show={showLoadModal}
+        onClose={() => setShowLoadModal(false)}
+        slotCount={SAVE_SLOTS_COUNT}
+        getSlotInfo={getSlotInfo}
+        onLoad={(index) => {
+          const loaded = loadFromSlot(index)
+          if (loaded) setState(loaded)
+        }}
+      />
 
       <main className="main">
         <aside className="left-sidebar">
@@ -863,10 +1195,13 @@ function App() {
 
           <section className={`cultivation-area gu-panel`}>
             <div className="cultivation-panel-header">
-              <div className="cultivation-attributes">
-                <span>攻击 {attack}</span>
-                <span>血量 {hp}</span>
-              </div>
+              <button
+                type="button"
+                className="btn-character-panel"
+                onClick={() => setShowCharacterStats((v) => !v)}
+              >
+                人物
+              </button>
               <label className="auto-cultivate-toggle">
                 <input
                   type="checkbox"
@@ -879,7 +1214,10 @@ function App() {
             {lastGain > 0 && (
               <div className="gain-float">+{lastGain} 修为</div>
             )}
-            <CharacterPortrait isCultivating={isCultivating} />
+            <CharacterPortrait
+              isCultivating={isCultivating}
+              onToggleStats={() => setShowCharacterStats((v) => !v)}
+            />
             <CultivationProgress
               progress={progress}
               isCultivating={isCultivating}
@@ -915,6 +1253,15 @@ function App() {
             onUnequipWeapon={handleUnequipWeapon}
             onEquipArmor={handleEquipArmor}
             onUseDirectPill={handleUseDirectPill}
+            onSortInventory={() => {
+              setState((prev) => ({
+                ...prev,
+                inventory: { ...normalizeInventory(prev.inventory) },
+              }))
+            }}
+            cuitiUsedCount={cuitiUsedCount}
+            xueUsedCount={xueUsedCount}
+            shenxingUsedCount={shenxingUsedCount}
           />
         </aside>
       </main>
@@ -944,6 +1291,8 @@ function App() {
         onClose={() => setShowRedeemCode(false)}
         onRedeem={handleRedeem}
         onRedeemWeapons={handleRedeemWeapons}
+        onRedeemPills={handleRedeemPills}
+        onRedeemContribution={handleRedeemContribution}
       />
 
       <TreasurePavilionModal
@@ -952,6 +1301,8 @@ function App() {
         inventory={inventory}
         spiritStones={spiritStones ?? 0}
         shopItems={shopItems ?? []}
+        ownedRecipes={ownedRecipes}
+        learnedRecipes={learnedRecipes}
         onSell={handleSellItem}
         onBuy={handleBuyItem}
         onForceRefresh={handleShopForceRefresh}
@@ -1035,14 +1386,63 @@ function App() {
         onBanditFight={handleBanditFight}
         onBanditPay={handleBanditPay}
         onBanditEscape={handleBanditEscape}
+        battleState={battleState}
+        onBattleNextTurn={handleBattleNextTurn}
       />
+
+      {showCharacterStats && (
+        <div
+          className="character-stats-overlay"
+          onClick={() => setShowCharacterStats(false)}
+        >
+          <div
+            className="character-stats-modal gu-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="btn-char-back"
+              onClick={() => setShowCharacterStats(false)}
+            >
+              返回
+            </button>
+            <h3 className="character-stats-modal-title">人物属性</h3>
+            <div className="character-stats-row">
+              <span className="label">攻击</span>
+              <span className="value">{attack}</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">血量</span>
+              <span className="value">{hp}</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">速度</span>
+              <span className="value">{speed}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SectModal
         show={showSectModal}
         onClose={() => setShowSectModal(false)}
         sect={joinedSect}
-        onLeaveSect={() => setState((s) => ({ ...s, joinedSect: null }))}
+        onLeaveSect={() => setState((s) => ({ ...s, joinedSect: null, sectContribution: 0, sectRankIndex: 0 }))}
+        sectContribution={sectContribution}
+        sectRankIndex={sectRankIndex}
+        learnedTechs={learnedTechs}
+        inventory={inventory}
+        onAddContribution={handleAddContribution}
+        onUpgradeRank={handleUpgradeRank}
+        onBuyTreasuryItem={handleBuyTreasuryItem}
       />
+
+      {battleReward && (
+        <div className="battle-reward-toast">
+          {battleReward.type === 'win' && <>战斗胜利，获得 {battleReward.stones} 灵石</>}
+          {battleReward.type === 'lose' && <>战斗失败，损失 {battleReward.loss} 灵石</>}
+        </div>
+      )}
     </div>
   )
 }

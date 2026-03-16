@@ -9,6 +9,26 @@
   margin-bottom: 0.5rem;
 }
 
+.inventory-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-inv-sort {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.btn-inv-sort:hover {
+  background: var(--btn-hover);
+}
+
 .page-info {
   font-size: 0.8rem;
   color: var(--ink-muted);
@@ -19,7 +39,7 @@
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   gap: 4px;
-  min-height: 220px;
+  min-height: 240px;
   min-width: 0;
 }
 
@@ -28,12 +48,12 @@
   background: var(--slot-bg);
   border: 2px solid var(--slot-border);
   border-radius: 2px;
-  padding: 4px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  min-height: 52px;
+  min-height: 60px;
   min-width: 0;
 }
 

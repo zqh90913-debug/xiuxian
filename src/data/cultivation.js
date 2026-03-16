@@ -68,16 +68,18 @@ export function getRealmDisplayName(realmIndex, layer) {
 }
 
 /**
- * 基础属性：攻击、血量
+ * 基础属性：攻击、血量、速度
  * 升小境界（同境界内层数+1）小幅提升，升大境界（跨境界）大幅提升
  */
 export const BASE_ATTACK = 10
 export const BASE_HP = 100
+// 速度基数比攻击更低，整体控制在几十到几百
+export const BASE_SPEED = 5
 
-// 每升一层小境界，攻击和血量的倍率
+// 每升一层小境界，属性倍率
 export const LAYER_STAT_MULTIPLIER = 1.08
 
-// 每升一个大境界，攻击和血量的额外倍率
+// 每升一个大境界，属性额外倍率
 export const REALM_STAT_MULTIPLIER = 2.5
 
 /**
@@ -106,4 +108,23 @@ export function getHp(realmIndex, layer) {
   const layerBonus = Math.pow(LAYER_STAT_MULTIPLIER, totalLayers - 1)
   const realmBonus = Math.pow(REALM_STAT_MULTIPLIER, realmIndex)
   return Math.floor(BASE_HP * layerBonus * realmBonus)
+}
+
+/**
+ * 根据境界计算基础速度
+ */
+export function getBaseSpeed(realmIndex, layer) {
+  const totalLayers = realmIndex * LAYERS_PER_REALM + layer
+  // 速度随层数增长比攻击/血量更缓和
+  const layerBonus = Math.pow(1.03, totalLayers - 1)
+  const realmBonus = Math.pow(1.6, realmIndex)
+  return Math.floor(BASE_SPEED * layerBonus * realmBonus)
+}
+
+/**
+ * 计算总速度（目前无装备加成，预留参数）
+ */
+export function getSpeed(realmIndex, layer, equipmentSpeedBonus = 0) {
+  const base = getBaseSpeed(realmIndex, layer)
+  return base + equipmentSpeedBonus
 }

@@ -53,6 +53,12 @@ export const PILLS = {
   'dacheng_dan': { id: 'dacheng_dan', name: '大乘丹', grade: 8, realmIndex: 7 }, // 大乘
   /** 凝气丹：三品，直接使用增加 10000 修为 */
   'ningqi_dan': { id: 'ningqi_dan', name: '凝气丹', grade: 3, directUse: true, cultivationGain: 10000 },
+  /** 淬体丹：直接使用增加 5 点血量（限用 50 次） */
+  'cuiti_dan': { id: 'cuiti_dan', name: '淬体丹', grade: 1, directUse: true },
+  /** 血丹：直接使用增加 2 点攻击（限用 50 次） */
+  'xue_dan': { id: 'xue_dan', name: '血丹', grade: 2, directUse: true },
+  /** 神行丹：直接使用增加 1 点速度（限用 10 次） */
+  'shenxing_dan': { id: 'shenxing_dan', name: '神行丹', grade: 2, directUse: true },
 }
 
 export const PILL_IDS = Object.keys(PILLS)
@@ -160,6 +166,9 @@ export const RECIPE_SCROLLS = {
   'recipe_heti': { id: 'recipe_heti', name: '合体丹方', pillId: 'heti_dan' },
   'recipe_dujie': { id: 'recipe_dujie', name: '渡劫丹方', pillId: 'dujie_dan' },
   'recipe_dacheng': { id: 'recipe_dacheng', name: '大乘丹方', pillId: 'dacheng_dan' },
+  'recipe_cuiti': { id: 'recipe_cuiti', name: '淬体丹方', pillId: 'cuiti_dan' },
+  'recipe_xue': { id: 'recipe_xue', name: '血丹丹方', pillId: 'xue_dan' },
+  'recipe_shenxing': { id: 'recipe_shenxing', name: '神行丹方', pillId: 'shenxing_dan' },
 }
 export const RECIPE_IDS = Object.keys(RECIPE_SCROLLS)
 const RECIPE_BUY_PRICES = {
@@ -171,6 +180,9 @@ const RECIPE_BUY_PRICES = {
   'recipe_heti': 12000,
   'recipe_dujie': 30000,
   'recipe_dacheng': 80000,
+  'recipe_cuiti': 500,
+  'recipe_xue': 1500,
+  'recipe_shenxing': 1500,
 }
 export function getRecipeScrollBuyPrice(itemId) {
   return RECIPE_BUY_PRICES[itemId] ?? 0
@@ -281,6 +293,22 @@ export function getItemById(itemId) {
   return null
 }
 
+/** 获取展示用品级文字，如「一品」「二品」 */
+export function getGradeLabel(grade) {
+  switch (grade) {
+    case 1: return '一品'
+    case 2: return '二品'
+    case 3: return '三品'
+    case 4: return '四品'
+    case 5: return '五品'
+    case 6: return '六品'
+    case 7: return '七品'
+    case 8: return '八品'
+    case 9: return '九品'
+    default: return ''
+  }
+}
+
 export function getPillGradeColor(grade) {
   return PILL_GRADE_COLORS[grade] ?? '#9e9e9e'
 }
@@ -321,13 +349,46 @@ export function normalizeInventory(inv) {
   return typeof inv === 'object' ? inv : {}
 }
 
-/** 转换为展示用的数组 [{ itemId, count }]，按 itemId 排序保证分页稳定 */
+const TYPE_ORDER = {
+  [ITEM_TYPES.PILL]: 0,
+  [ITEM_TYPES.WEAPON]: 1,
+  [ITEM_TYPES.ARMOR]: 2,
+  [ITEM_TYPES.MATERIAL]: 3,
+  [ITEM_TYPES.FURNACE]: 4,
+  [ITEM_TYPES.RECIPE]: 5,
+}
+
+function getSortInfo(itemId) {
+  const item = getItemById(itemId)
+  const type = item?.type
+  const typeRank = TYPE_ORDER[type] ?? 99
+  let grade = 0
+  if (item) {
+    if (item.grade != null) {
+      grade = item.grade
+    } else if (type === ITEM_TYPES.MATERIAL && item.tier != null) {
+      grade = item.tier
+    } else if (type === ITEM_TYPES.RECIPE && item.pillId) {
+      const pill = getItemById(item.pillId)
+      if (pill?.grade != null) grade = pill.grade
+    }
+  }
+  return { typeRank, grade, itemId }
+}
+
+/** 转换为展示用的数组 [{ itemId, count }]，按类别与品级排序 */
 export function inventoryToStacks(inv) {
   const normalized = normalizeInventory(inv)
   return Object.entries(normalized)
     .filter(([, c]) => c > 0)
     .map(([itemId, count]) => ({ itemId, count }))
-    .sort((a, b) => a.itemId.localeCompare(b.itemId))
+    .sort((a, b) => {
+      const sa = getSortInfo(a.itemId)
+      const sb = getSortInfo(b.itemId)
+      if (sa.typeRank !== sb.typeRank) return sa.typeRank - sb.typeRank
+      if (sa.grade !== sb.grade) return sb.grade - sa.grade
+      return sa.itemId.localeCompare(sb.itemId)
+    })
 }
 
 const MAX_INVENTORY_SLOTS = 600

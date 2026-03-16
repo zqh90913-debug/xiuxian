@@ -1,0 +1,158 @@
+.game-daoguo {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem;
+  min-height: 0;
+}
+
+.game-daoguo-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+  max-width: 400px;
+  flex-wrap: wrap;
+}
+
+.game-daoguo-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.2rem;
+  color: var(--gold);
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.game-daoguo-score,
+.game-daoguo-high {
+  font-size: 0.9rem;
+  color: var(--gold);
+}
+
+.btn-daoguo-back {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.game-daoguo-tip {
+  font-size: 0.8rem;
+  color: var(--ink);
+  margin: 0 0 0.5rem 0;
+  padding: 0.45rem 0.65rem;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 6px;
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  width: 100%;
+  max-width: 380px;
+  box-sizing: border-box;
+}
+
+.game-daoguo-next {
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.35rem;
+}
+
+.game-daoguo-next-name {
+  font-weight: 600;
+}
+
+.game-daoguo-canvas-wrap {
+  width: 380px;
+  height: 560px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  border: 1px solid var(--slot-border);
+  overflow: hidden;
+  position: relative;
+}
+
+.game-daoguo-canvas-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+}
+
+.game-daoguo-canvas-inner canvas {
+  display: block;
+  border-radius: 10px;
+}
+
+.game-daoguo-danger {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 140px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #c00, #c00, transparent);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.game-daoguo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.game-daoguo-overlay-inner {
+  background: linear-gradient(180deg, var(--paper) 0%, var(--wood) 100%);
+  border: 2px solid var(--gold);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  min-width: 220px;
+}
+
+.game-daoguo-overlay-title {
+  font-size: 1.1rem;
+  color: var(--gold);
+  margin: 0 0 0.5rem 0;
+}
+
+.game-daoguo-overlay-score {
+  font-size: 1rem;
+  color: var(--ink);
+  margin: 0 0 0.25rem 0;
+}
+
+.game-daoguo-overlay-high {
+  font-size: 0.95rem;
+  color: var(--gold);
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+}
+
+.game-daoguo-overlay-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-daoguo-again {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  background: rgba(201, 162, 39, 0.3);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  color: var(--gold);
+  cursor: pointer;
+}
+
+.btn-daoguo-again:hover {
+  background: rgba(201, 162, 39, 0.45);
+}

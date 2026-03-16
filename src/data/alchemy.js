@@ -19,6 +19,12 @@ export const CRAFT_RECIPES = {
   heti_dan: { materials: { gu_lingzhi: 4, di_nvlu: 4, shen_shupi: 4, wan_moyu: 3, yang_hunhua: 3 } },
   dujie_dan: { materials: { bingxue_ziling_guo: 4, jinsha_chigui_tong: 4, qingjing_shenshen_ye: 4, qisha_gumanao: 5, xisui_wushi: 5 } },
   dacheng_dan: { materials: { lingyuan_anjing_yan: 5, jinsha_wucao: 6, bingxue_ziling_guo: 5, jinsha_chigui_tong: 5, qingjing_shenshen_ye: 5 } },
+  // 一品淬体丹：用初级材料，消耗总量略低于同品突破丹
+  cuiti_dan: { materials: { an_sha: 2, wu_shi: 2 } },
+  // 二品血丹：用初级材料，比淬体丹略贵
+  xue_dan: { materials: { bi_yin: 2, zi_tong: 2, chi_yu: 1 } },
+  // 二品神行丹：用初级+少量中级材料，体现稀有度
+  shenxing_dan: { materials: { chi_yu: 2, an_sha: 2, gu_lingzhi: 1 } },
 }
 
 export { FURNACES }
