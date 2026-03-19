@@ -1,7 +1,7 @@
 /**
  * 背包 - 每页 5×6 格子，共 20 页
  * 每种道具一格，相同道具堆叠显示数量
- * 突破丹在突破界面使用，直接使用丹（如凝气丹）点击使用，法宝点击可装备
+ * 破境丹在突破界面使用，直接使用丹（如养魂丹）点击使用，法宝点击可装备
  */
 import { useState } from 'react'
 import { inventoryToStacks, getItemById, getPillGradeColor, ITEM_TYPES, getGradeLabel } from '../data/items'
@@ -72,7 +72,7 @@ export default function InventoryPanel({
           const color = (isPill || isWeapon || isArmor) ? getPillGradeColor(item.grade) : (isMaterial && item.tier ? getPillGradeColor(item.tier) : undefined)
           let pillTitle = isDirectUsePill ? '点击使用' : '突破时在突破界面使用'
           if (isPill && item?.id === 'cuiti_dan') pillTitle = `点击使用（已用 ${cuitiUsedCount}/50）`
-          if (isPill && item?.id === 'xue_dan') pillTitle = `点击使用（已用 ${xueUsedCount}/50）`
+          if (isPill && item?.id === 'longli_dan') pillTitle = `点击使用（已用 ${xueUsedCount}/50）`
           if (isPill && item?.id === 'shenxing_dan') pillTitle = `点击使用（已用 ${shenxingUsedCount}/10）`
           const gradeLabel = item?.grade != null ? getGradeLabel(item.grade) : undefined
           const baseTitle = item?.name ?? stack.itemId

@@ -81,11 +81,36 @@ export default function SectModal({
 
   const renderMain = () => (
     <>
-      <h4 className="sect-name">
-        {sect.name}
-        <span className="sect-level">（{sect.levelLabel}）</span>
-      </h4>
-      <p className="sect-desc">{sect.desc}</p>
+      {sect.leader?.portrait && (
+        <div className="sect-leader-hero">
+          <img src={sect.leader.portrait} alt={`${sect.leader.name}立绘`} className="sect-leader-portrait" />
+          <div className="sect-leader-copy">
+            <h4 className="sect-name">
+              {sect.name}
+              <span className="sect-level">（{sect.levelLabel}）</span>
+            </h4>
+            <p className="sect-desc">
+              宗主：{sect.leader.name} · {sect.leader.title}
+            </p>
+            <p className="sect-desc">{sect.desc}</p>
+          </div>
+        </div>
+      )}
+      {!sect.leader?.portrait && (
+        <>
+          <div className="sect-leader-empty">宗主立绘待添加</div>
+          <h4 className="sect-name">
+            {sect.name}
+            <span className="sect-level">（{sect.levelLabel}）</span>
+          </h4>
+          {sect.leader && (
+            <p className="sect-desc">
+              宗主：{sect.leader.name} · {sect.leader.title}
+            </p>
+          )}
+          <p className="sect-desc">{sect.desc}</p>
+        </>
+      )}
       <p className="sect-contribution">贡献点：{sectContribution}</p>
       <p className="sect-rank">当前职位：{currentRank.name}</p>
       <div className="sect-buttons">

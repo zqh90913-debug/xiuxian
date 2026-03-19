@@ -27,6 +27,8 @@ export const PILL_GRADE_COLORS = {
   7: '#9575cd',   // 紫
   8: '#f06292',   // 粉
   9: '#ffeb3b',   // 金
+  10: '#ef5350',
+  11: '#26a69a',
 }
 
 /** 丹药基础价格：品级 -> [收购价, 售价] */
@@ -40,24 +42,30 @@ const GRADE_PRICES = {
   7: [204800, 409600],
   8: [819200, 1638400],
   9: [3276800, 6553600],
+  10: [13107200, 26214400],
+  11: [52428800, 104857600],
 }
 
-/** 丹药定义：提升大境界突破成功率 +5%；部分为直接使用（增加修为等） */
+/** 丹药定义：大境界突破使用破境丹；部分为直接使用（增加修为等） */
 export const PILLS = {
-  'zhuji_dan': { id: 'zhuji_dan', name: '筑基丹', grade: 1, realmIndex: 1 },    // 筑基
-  'yuanshen_dan': { id: 'yuanshen_dan', name: '元神丹', grade: 2, realmIndex: 2 }, // 金丹
-  'yuanying_dan': { id: 'yuanying_dan', name: '元婴丹', grade: 4, realmIndex: 3 }, // 元婴
-  'huashen_dan': { id: 'huashen_dan', name: '化神丹', grade: 5, realmIndex: 4 },  // 化神
-  'heti_dan': { id: 'heti_dan', name: '合体丹', grade: 6, realmIndex: 5 },       // 合体
-  'dujie_dan': { id: 'dujie_dan', name: '渡劫丹', grade: 7, realmIndex: 6 },     // 渡劫
-  'dacheng_dan': { id: 'dacheng_dan', name: '大乘丹', grade: 8, realmIndex: 7 }, // 大乘
-  /** 凝气丹：三品，直接使用增加 10000 修为 */
-  'ningqi_dan': { id: 'ningqi_dan', name: '凝气丹', grade: 3, directUse: true, cultivationGain: 10000 },
-  /** 淬体丹：直接使用增加 5 点血量（限用 50 次） */
+  'pojing_dan_1': { id: 'pojing_dan_1', name: '一阶破境丹', grade: 2, realmIndex: 12 },
+  'pojing_dan_2': { id: 'pojing_dan_2', name: '二阶破境丹', grade: 3, realmIndex: 17 },
+  'pojing_dan_3': { id: 'pojing_dan_3', name: '三阶破境丹', grade: 4, realmIndex: 28 },
+  'pojing_dan_4': { id: 'pojing_dan_4', name: '四阶破境丹', grade: 5, realmIndex: 32 },
+  'pojing_dan_5': { id: 'pojing_dan_5', name: '五阶破境丹', grade: 6, realmIndex: 37 },
+  'pojing_dan_6': { id: 'pojing_dan_6', name: '六阶破境丹', grade: 6, realmIndex: 42 },
+  'pojing_dan_7': { id: 'pojing_dan_7', name: '七阶破境丹', grade: 7, realmIndex: 43 },
+  'pojing_dan_8': { id: 'pojing_dan_8', name: '八阶破境丹', grade: 7, realmIndex: 44 },
+  'pojing_dan_9': { id: 'pojing_dan_9', name: '九阶破境丹', grade: 8, realmIndex: 45 },
+  'pojing_dan_10': { id: 'pojing_dan_10', name: '十阶破境丹', grade: 8, realmIndex: 46 },
+  'pojing_dan_11': { id: 'pojing_dan_11', name: '十一阶破境丹', grade: 9, realmIndex: 47 },
+  'yanghun_dan': { id: 'yanghun_dan', name: '养魂丹', grade: 1, directUse: true, cultivationGain: 500 },
+  'yanghun_jingdan': { id: 'yanghun_jingdan', name: '养魂精丹', grade: 3, directUse: true, cultivationGain: 5000 },
+  'dahuan_dan': { id: 'dahuan_dan', name: '大还丹', grade: 5, directUse: true, cultivationGain: 50000 },
+  'puti_dahuan_dan': { id: 'puti_dahuan_dan', name: '菩提大还丹', grade: 7, directUse: true, cultivationGain: 500000 },
+  'qiankun_zaohua_dan': { id: 'qiankun_zaohua_dan', name: '乾坤造化丹', grade: 9, directUse: true, fillCurrentRealm: true },
   'cuiti_dan': { id: 'cuiti_dan', name: '淬体丹', grade: 1, directUse: true },
-  /** 血丹：直接使用增加 2 点攻击（限用 50 次） */
-  'xue_dan': { id: 'xue_dan', name: '血丹', grade: 2, directUse: true },
-  /** 神行丹：直接使用增加 1 点速度（限用 10 次） */
+  'longli_dan': { id: 'longli_dan', name: '龙力丹', grade: 2, directUse: true },
   'shenxing_dan': { id: 'shenxing_dan', name: '神行丹', grade: 2, directUse: true },
 }
 
@@ -106,28 +114,34 @@ const MATERIAL_TIER_PRICES = {
   3: [35, 350],
 }
 export const MATERIALS = {
-  // 初级
-  'an_sha': { id: 'an_sha', name: '暗砂', tier: 1 },
-  'bi_yin': { id: 'bi_yin', name: '碧银', tier: 1 },
-  'zi_tong': { id: 'zi_tong', name: '紫铜', tier: 1 },
-  'wu_shi': { id: 'wu_shi', name: '乌石', tier: 1 },
+  // 低级
+  'wu_sha': { id: 'wu_sha', name: '钨砂', tier: 1 },
   'chi_yu': { id: 'chi_yu', name: '赤玉', tier: 1 },
+  'zi_tong': { id: 'zi_tong', name: '紫铜', tier: 1 },
+  'yun_tie': { id: 'yun_tie', name: '陨铁', tier: 1 },
+  'gu_yin': { id: 'gu_yin', name: '古银', tier: 1 },
+  'mi_yu': { id: 'mi_yu', name: '秘玉', tier: 1 },
+  'wu_jing': { id: 'wu_jing', name: '乌晶', tier: 1 },
+  'xuan_tie': { id: 'xuan_tie', name: '玄铁', tier: 1 },
+  'ling_shui': { id: 'ling_shui', name: '灵水', tier: 1 },
   // 中级
-  'gu_lingzhi': { id: 'gu_lingzhi', name: '古灵芝', tier: 2 },
-  'di_nvlu': { id: 'di_nvlu', name: '帝女露', tier: 2 },
-  'qi_xian_yu': { id: 'qi_xian_yu', name: '七弦玉', tier: 2 },
-  'shen_shupi': { id: 'shen_shupi', name: '神树皮', tier: 2 },
-  'wan_moyu': { id: 'wan_moyu', name: '万魔玉', tier: 2 },
-  'yang_hunhua': { id: 'yang_hunhua', name: '养魂花', tier: 2 },
-  'fu_yunguo': { id: 'fu_yunguo', name: '拂云果', tier: 2 },
+  'chi_mo_tie': { id: 'chi_mo_tie', name: '赤魔铁', tier: 2 },
+  'zi_xuan_shi': { id: 'zi_xuan_shi', name: '紫玄石', tier: 2 },
+  'an_jing_tie': { id: 'an_jing_tie', name: '暗精铁', tier: 2 },
+  'chi_gui_jin': { id: 'chi_gui_jin', name: '赤鬼金', tier: 2 },
+  'qing_gu_sha': { id: 'qing_gu_sha', name: '青古砂', tier: 2 },
+  'yang_hun_hua': { id: 'yang_hun_hua', name: '养魂花', tier: 2 },
+  'fu_yun_guo': { id: 'fu_yun_guo', name: '拂云果', tier: 2 },
+  'di_nv_lu': { id: 'di_nv_lu', name: '帝女露', tier: 2 },
+  'wu_gu_xu': { id: 'wu_gu_xu', name: '乌古须', tier: 2 },
   // 高级
-  'bingxue_ziling_guo': { id: 'bingxue_ziling_guo', name: '冰雪紫灵果', tier: 3 },
-  'jinsha_chigui_tong': { id: 'jinsha_chigui_tong', name: '金砂赤鬼铜', tier: 3 },
-  'qingjing_shenshen_ye': { id: 'qingjing_shenshen_ye', name: '清净神树叶', tier: 3 },
-  'qisha_gumanao': { id: 'qisha_gumanao', name: '七杀古玛瑙', tier: 3 },
-  'xisui_wushi': { id: 'xisui_wushi', name: '洗髓乌石', tier: 3 },
-  'lingyuan_anjing_yan': { id: 'lingyuan_anjing_yan', name: '灵猿暗精岩', tier: 3 },
-  'jinsha_wucao': { id: 'jinsha_wucao', name: '金砂乌草', tier: 3 },
+  'xuan_yin_chi_gui_jin': { id: 'xuan_yin_chi_gui_jin', name: '玄阴赤鬼金', tier: 3 },
+  'jin_sha_tong': { id: 'jin_sha_tong', name: '金砂铜', tier: 3 },
+  'qi_sha_gu_ma_nao': { id: 'qi_sha_gu_ma_nao', name: '七杀古玛瑙', tier: 3 },
+  'xi_sui_wu_shi': { id: 'xi_sui_wu_shi', name: '洗髓乌石', tier: 3 },
+  'yun_yu_bi_zhen_mu': { id: 'yun_yu_bi_zhen_mu', name: '陨玉碧真木', tier: 3 },
+  'wu_ding_bi_bao_shen': { id: 'wu_ding_bi_bao_shen', name: '无定碧宝参', tier: 3 },
+  'qi_qiao_wu_mi_shui_jing': { id: 'qi_qiao_wu_mi_shui_jing', name: '七巧乌秘水晶', tier: 3 },
 }
 export const MATERIAL_IDS = Object.keys(MATERIALS)
 
@@ -158,30 +172,46 @@ export const FURNACE_IDS = Object.keys(FURNACES)
 
 /** 丹方：使用后解锁对应丹药的炼制；可在商店刷新 */
 export const RECIPE_SCROLLS = {
-  'recipe_zhuji': { id: 'recipe_zhuji', name: '筑基丹方', pillId: 'zhuji_dan' },
-  'recipe_yuanshen': { id: 'recipe_yuanshen', name: '元神丹方', pillId: 'yuanshen_dan' },
-  'recipe_ningqi': { id: 'recipe_ningqi', name: '凝气丹方', pillId: 'ningqi_dan' },
-  'recipe_yuanying': { id: 'recipe_yuanying', name: '元婴丹方', pillId: 'yuanying_dan' },
-  'recipe_huashen': { id: 'recipe_huashen', name: '化神丹方', pillId: 'huashen_dan' },
-  'recipe_heti': { id: 'recipe_heti', name: '合体丹方', pillId: 'heti_dan' },
-  'recipe_dujie': { id: 'recipe_dujie', name: '渡劫丹方', pillId: 'dujie_dan' },
-  'recipe_dacheng': { id: 'recipe_dacheng', name: '大乘丹方', pillId: 'dacheng_dan' },
+  'recipe_pojing_1': { id: 'recipe_pojing_1', name: '一阶破境丹方', pillId: 'pojing_dan_1' },
+  'recipe_pojing_2': { id: 'recipe_pojing_2', name: '二阶破境丹方', pillId: 'pojing_dan_2' },
+  'recipe_pojing_3': { id: 'recipe_pojing_3', name: '三阶破境丹方', pillId: 'pojing_dan_3' },
+  'recipe_pojing_4': { id: 'recipe_pojing_4', name: '四阶破境丹方', pillId: 'pojing_dan_4' },
+  'recipe_pojing_5': { id: 'recipe_pojing_5', name: '五阶破境丹方', pillId: 'pojing_dan_5' },
+  'recipe_pojing_6': { id: 'recipe_pojing_6', name: '六阶破境丹方', pillId: 'pojing_dan_6' },
+  'recipe_pojing_7': { id: 'recipe_pojing_7', name: '七阶破境丹方', pillId: 'pojing_dan_7' },
+  'recipe_pojing_8': { id: 'recipe_pojing_8', name: '八阶破境丹方', pillId: 'pojing_dan_8' },
+  'recipe_pojing_9': { id: 'recipe_pojing_9', name: '九阶破境丹方', pillId: 'pojing_dan_9' },
+  'recipe_pojing_10': { id: 'recipe_pojing_10', name: '十阶破境丹方', pillId: 'pojing_dan_10' },
+  'recipe_pojing_11': { id: 'recipe_pojing_11', name: '十一阶破境丹方', pillId: 'pojing_dan_11' },
+  'recipe_yanghun': { id: 'recipe_yanghun', name: '养魂丹方', pillId: 'yanghun_dan' },
+  'recipe_yanghun_jing': { id: 'recipe_yanghun_jing', name: '养魂精丹方', pillId: 'yanghun_jingdan' },
+  'recipe_dahuan': { id: 'recipe_dahuan', name: '大还丹方', pillId: 'dahuan_dan' },
+  'recipe_puti_dahuan': { id: 'recipe_puti_dahuan', name: '菩提大还丹方', pillId: 'puti_dahuan_dan' },
+  'recipe_qiankun_zaohua': { id: 'recipe_qiankun_zaohua', name: '乾坤造化丹方', pillId: 'qiankun_zaohua_dan' },
   'recipe_cuiti': { id: 'recipe_cuiti', name: '淬体丹方', pillId: 'cuiti_dan' },
-  'recipe_xue': { id: 'recipe_xue', name: '血丹丹方', pillId: 'xue_dan' },
+  'recipe_longli': { id: 'recipe_longli', name: '龙力丹方', pillId: 'longli_dan' },
   'recipe_shenxing': { id: 'recipe_shenxing', name: '神行丹方', pillId: 'shenxing_dan' },
 }
 export const RECIPE_IDS = Object.keys(RECIPE_SCROLLS)
 const RECIPE_BUY_PRICES = {
-  'recipe_zhuji': 200,
-  'recipe_yuanshen': 500,
-  'recipe_ningqi': 800,
-  'recipe_yuanying': 2000,
-  'recipe_huashen': 5000,
-  'recipe_heti': 12000,
-  'recipe_dujie': 30000,
-  'recipe_dacheng': 80000,
+  'recipe_pojing_1': 200,
+  'recipe_pojing_2': 500,
+  'recipe_pojing_3': 1200,
+  'recipe_pojing_4': 2600,
+  'recipe_pojing_5': 5200,
+  'recipe_pojing_6': 11000,
+  'recipe_pojing_7': 22000,
+  'recipe_pojing_8': 45000,
+  'recipe_pojing_9': 90000,
+  'recipe_pojing_10': 180000,
+  'recipe_pojing_11': 360000,
+  'recipe_yanghun': 300,
+  'recipe_yanghun_jing': 800,
+  'recipe_dahuan': 5000,
+  'recipe_puti_dahuan': 30000,
+  'recipe_qiankun_zaohua': 120000,
   'recipe_cuiti': 500,
-  'recipe_xue': 1500,
+  'recipe_longli': 1500,
   'recipe_shenxing': 1500,
 }
 export function getRecipeScrollBuyPrice(itemId) {
@@ -267,7 +297,6 @@ export function getWeaponBuyPrice(itemId) {
   return WEAPON_GRADE_PRICES[w.grade]?.[1] ?? 0
 }
 
-/** 根据目标境界索引获取对应突破丹药 id（1=筑基 2=金丹 ... 7=大乘） */
 export function getPillIdForRealm(realmIndex) {
   const entry = Object.entries(PILLS).find(([, p]) => p.realmIndex === realmIndex)
   return entry ? entry[0] : null
@@ -277,7 +306,7 @@ export function getPill(id) {
   return PILLS[id]
 }
 
-/** 直接使用类丹药增加的修为（如凝气丹），无则返回 0 */
+/** 直接使用类丹药增加的修为（如养魂丹），无则返回 0 */
 export function getPillCultivationGain(itemId) {
   const p = PILLS[itemId]
   return (p && p.directUse && p.cultivationGain) ? p.cultivationGain : 0
@@ -305,6 +334,8 @@ export function getGradeLabel(grade) {
     case 7: return '七品'
     case 8: return '八品'
     case 9: return '九品'
+    case 10: return '十品'
+    case 11: return '十一品'
     default: return ''
   }
 }
@@ -340,13 +371,17 @@ export function normalizeInventory(inv) {
     for (const slot of inv) {
       if (slot && (slot.id || slot.itemId)) {
         const id = slot.id ?? slot.itemId
+        if (!getItemById(id)) continue
         const count = slot.count ?? 1
         out[id] = (out[id] ?? 0) + count
       }
     }
     return out
   }
-  return typeof inv === 'object' ? inv : {}
+  if (typeof inv !== 'object') return {}
+  return Object.fromEntries(
+    Object.entries(inv).filter(([itemId, count]) => count > 0 && getItemById(itemId)),
+  )
 }
 
 const TYPE_ORDER = {

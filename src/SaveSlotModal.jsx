@@ -39,9 +39,19 @@ export default function SaveSlotModal({ show, onClose, slotCount, getSlotInfo, o
                 className={`slot-block ${selectedIndex === i ? 'slot-block-selected' : ''}`}
                 onClick={() => setSelectedIndex(i)}
               >
-                <span className="slot-label">存档{i + 1}</span>
+                <span className="slot-main">
+                  <span className="slot-label">存档{i + 1}</span>
+                  {info?.name && <span className="slot-name">{info.name}</span>}
+                </span>
                 {info?.savedAt
-                  ? <span className="slot-time">{new Date(info.savedAt).toLocaleString('zh-CN')}</span>
+                  ? (
+                    <span className="slot-meta">
+                      {info.realmIndex != null && info.layer != null && (
+                        <span className="slot-realm">境界 {info.realmIndex + 1}-{info.layer}</span>
+                      )}
+                      <span className="slot-time">{new Date(info.savedAt).toLocaleString('zh-CN')}</span>
+                    </span>
+                    )
                   : <span className="slot-empty">空</span>}
               </button>
             )

@@ -66,3 +66,9 @@ git config --global user.name "你的名字"
 - **拉取更新**：`git pull`
 - **提交并推送**：修改后执行 `git add .` → `git commit -m "说明"` → `git push`（需被添加为协作者或 fork 后提 PR）
 - **邀请协作者**：仓库 → Settings → Collaborators → Add people，添加对方 GitHub 账号即可一起编辑
+
+
+cd /Users/apple/Desktop/xiuxian
+npm install
+npm run dev
+

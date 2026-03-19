@@ -1,9 +1,9 @@
 /**
- * 主角立绘：使用外部插画作为主界面角色，修炼时有灵气特效
+ * 主角立绘：当前保留空白占位，后续可继续接入正式立绘
  */
 import './CharacterPortrait.css'
 
-export default function CharacterPortrait({ isCultivating, onToggleStats }) {
+export default function CharacterPortrait({ isCultivating, onToggleStats, src = null }) {
   return (
     <div
       className={`character-portrait ${isCultivating ? 'cultivating' : ''}`}
@@ -20,11 +20,15 @@ export default function CharacterPortrait({ isCultivating, onToggleStats }) {
           <div className="portrait-particle portrait-particle-5" />
         </>
       )}
-      <img
-        className="portrait-image"
-        src="/main-character.png"
-        alt="主角立绘"
-      />
+      {src ? (
+        <img
+          className="portrait-image"
+          src={src}
+          alt="主角立绘"
+        />
+      ) : (
+        <div className="portrait-placeholder">立绘待添加</div>
+      )}
     </div>
   )
 }

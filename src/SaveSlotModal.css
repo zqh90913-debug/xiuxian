@@ -43,6 +43,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   padding: 0.6rem 0.75rem;
   background: rgba(0, 0, 0, 0.06);
   border: 1px solid var(--slot-border, rgba(201, 162, 39, 0.35));
@@ -58,13 +59,36 @@
   border-color: var(--gold, #c9a227);
 }
 
+.slot-main,
+.slot-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.slot-main {
+  min-width: 0;
+}
+
 .slot-label {
   font-weight: 500;
+}
+
+.slot-name {
+  margin-top: 0.12rem;
+  font-size: 0.78rem;
+  color: var(--gold, #c9a227);
+}
+
+.slot-realm {
+  font-size: 0.72rem;
+  color: var(--ink-muted, #666);
+  text-align: right;
 }
 
 .slot-time {
   font-size: 0.75rem;
   color: var(--ink-muted, #666);
+  text-align: right;
 }
 
 .slot-empty {

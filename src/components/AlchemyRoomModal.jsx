@@ -7,7 +7,7 @@ import {
   getRecipe,
   getFurnace,
   getCraftSuccessRate,
-  getCraftRecipeMaterials,
+  getScaledCraftRecipeMaterials,
   canCraftWithInventory,
   CRAFT_DURATION_MS,
 } from '../data/alchemy'
@@ -23,6 +23,7 @@ export default function AlchemyRoomModal({
   ownedFurnaces = [],
   equippedFurnaceId = null,
   inventory = {},
+  materialCostMultiplier = 1,
   lastCraftResult = null,
   onClearCraftResult,
   onUseRecipe,
@@ -47,7 +48,7 @@ export default function AlchemyRoomModal({
     .map((id) => getItemById(id)?.type === 'pill' ? id : null)
     .filter(Boolean)
     .sort((a, b) => (getItemById(b)?.grade ?? 0) - (getItemById(a)?.grade ?? 0))
-  const canCraft = (pillId) => canCraftWithInventory(pillId, inventory)
+  const canCraft = (pillId) => canCraftWithInventory(pillId, inventory, materialCostMultiplier)
   const isCrafting = craftingPillId != null && craftProgress < 1
 
   const handleStartCraft = (pillId) => {
@@ -107,7 +108,7 @@ export default function AlchemyRoomModal({
                   if (!pill || pill.type !== 'pill') return null
                   const successRate = getCraftSuccessRate(pillId, equippedFurnaceId)
                   const canStart = canCraft(pillId) && !isCrafting
-                  const materials = getCraftRecipeMaterials(pillId)
+                  const materials = getScaledCraftRecipeMaterials(pillId, materialCostMultiplier)
                   const materialText = Object.entries(materials).length === 0
                     ? '无'
                     : Object.entries(materials).map(([mid, n]) => `${getItemById(mid)?.name ?? mid}×${n}`).join('、')

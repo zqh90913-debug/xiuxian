@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   REALMS,
-  LAYERS_PER_REALM,
   getCultivationGain,
   getBreakthroughRequired,
   getRealmDisplayName,
   getAttack,
   getHp,
   getSpeed,
+  getNextRealmLayer,
+  getRealmLayerCount,
+  isMajorRealmBreak,
+  isFeishengStage,
 } from './data/cultivation'
 import CharacterPortrait from './components/CharacterPortrait'
 import CultivationProgress from './components/CultivationProgress'
@@ -24,7 +27,7 @@ import BingyanModal from './components/BingyanModal'
 import RegionSceneModal from './components/RegionSceneModal'
 import SectModal from './components/SectModal'
 import { REGIONS, REGION_NAME_MAP, getRandomSectForRegion, SECT_RANKS } from './data/sects'
-import { INITIAL_AVAILABLE_TECHNIQUES, getTechniqueById } from './data/techniques'
+import { INITIAL_AVAILABLE_TECHNIQUES, getTechniqueById, getTechniqueEffectiveBonuses, getTechniqueMasteryExp } from './data/techniques'
 import {
   INITIAL_OWNED_RECIPES,
   INITIAL_OWNED_FURNACES,
@@ -38,6 +41,8 @@ import RedeemCodeModal from './components/RedeemCodeModal'
 import SaveSlotModal from './SaveSlotModal'
 import LoadSlotModal from './LoadSlotModal'
 import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, removeFromInventory, SHOP_ITEM_IDS, WEAPON_IDS, ARMOR_IDS, getWeaponAttackBonus, getPillCultivationGain, getArmorHpBonus, ITEM_TYPES, MATERIAL_SHOP_COUNT, MATERIAL_IDS } from './data/items'
+import CharacterCreationModal from './components/CharacterCreationModal'
+import { getCharacterBonuses, getCharacterSelection, getDefaultCharacterProfile, normalizeCharacterProfile } from './data/characterCreation'
 import './App.css'
 
 const CULTIVATION_DURATION_MS = 10000
@@ -82,9 +87,10 @@ function normalizeEquipmentArmors(a) {
 
 function normalizeSaveData(data) {
   if (!data || data.realmIndex == null || data.layer == null || data.cultivation == null) return null
+  const safeLayer = Math.max(1, Math.min(data.layer, getRealmLayerCount(data.realmIndex)))
   return {
     realmIndex: data.realmIndex,
-    layer: data.layer,
+    layer: safeLayer,
     cultivation: data.cultivation,
     equipment: {
       weapons: normalizeEquipmentWeapons(data.equipment?.weapons),
@@ -98,6 +104,7 @@ function normalizeSaveData(data) {
     shopItems: Array.isArray(data.shopItems) ? data.shopItems : pickRandomShopItems(SHOP_SLOTS),
     learnedTechs: Array.isArray(data.learnedTechs) ? data.learnedTechs : [],
     availableTechs: Array.isArray(data.availableTechs) ? data.availableTechs : INITIAL_AVAILABLE_TECHNIQUES,
+    techniqueMastery: data.techniqueMastery ?? {},
     ownedRecipes: Array.isArray(data.ownedRecipes) ? data.ownedRecipes : INITIAL_OWNED_RECIPES,
     learnedRecipes: Array.isArray(data.learnedRecipes) ? data.learnedRecipes : [],
     ownedFurnaces: Array.isArray(data.ownedFurnaces) ? data.ownedFurnaces : INITIAL_OWNED_FURNACES,
@@ -108,10 +115,12 @@ function normalizeSaveData(data) {
     cuitiUsedCount: data.cuitiUsedCount ?? 0,
     xueUsedCount: data.xueUsedCount ?? 0,
     shenxingUsedCount: data.shenxingUsedCount ?? 0,
+    feishengUnlocked: data.feishengUnlocked ?? false,
+    characterProfile: normalizeCharacterProfile(data.characterProfile),
   }
 }
 
-function getDefaultState() {
+function getDefaultState(characterProfile = null) {
   return {
     realmIndex: 0,
     layer: 1,
@@ -125,6 +134,7 @@ function getDefaultState() {
     shopItems: pickRandomShopItems(SHOP_SLOTS),
     learnedTechs: [],
     availableTechs: INITIAL_AVAILABLE_TECHNIQUES,
+    techniqueMastery: {},
     ownedRecipes: INITIAL_OWNED_RECIPES,
     learnedRecipes: [],
     ownedFurnaces: INITIAL_OWNED_FURNACES,
@@ -135,6 +145,8 @@ function getDefaultState() {
     cuitiUsedCount: 0,
     xueUsedCount: 0,
     shenxingUsedCount: 0,
+    feishengUnlocked: false,
+    characterProfile: normalizeCharacterProfile(characterProfile),
   }
 }
 
@@ -165,6 +177,7 @@ function saveToSlot(state, index) {
       shopItems: state.shopItems ?? [],
       learnedTechs: state.learnedTechs ?? [],
       availableTechs: state.availableTechs ?? INITIAL_AVAILABLE_TECHNIQUES,
+      techniqueMastery: state.techniqueMastery ?? {},
       ownedRecipes: state.ownedRecipes ?? INITIAL_OWNED_RECIPES,
       learnedRecipes: state.learnedRecipes ?? [],
       ownedFurnaces: state.ownedFurnaces ?? INITIAL_OWNED_FURNACES,
@@ -175,6 +188,8 @@ function saveToSlot(state, index) {
       cuitiUsedCount: state.cuitiUsedCount ?? 0,
       xueUsedCount: state.xueUsedCount ?? 0,
       shenxingUsedCount: state.shenxingUsedCount ?? 0,
+      feishengUnlocked: state.feishengUnlocked ?? false,
+      characterProfile: normalizeCharacterProfile(state.characterProfile),
     }
     localStorage.setItem(getSaveSlotKey(index), JSON.stringify(payload))
     return true
@@ -199,14 +214,64 @@ function getSlotInfo(index) {
     const raw = localStorage.getItem(getSaveSlotKey(index))
     if (!raw) return null
     const data = JSON.parse(raw)
-    return { savedAt: data.savedAt }
+    return {
+      savedAt: data.savedAt,
+      name: data.characterProfile?.name ?? null,
+      realmIndex: data.realmIndex ?? null,
+      layer: data.layer ?? null,
+    }
   } catch (_) {
     return null
   }
 }
 
+function mergeUnique(base = [], extra = []) {
+  return [...new Set([...(base ?? []), ...(extra ?? [])])]
+}
+
+function buildCharacterState(profile) {
+  const normalized = normalizeCharacterProfile(profile) ?? getDefaultCharacterProfile()
+  const { spiritRoot, background, destiny } = getCharacterSelection(normalized)
+  const baseState = getDefaultState(normalized)
+  const startingNodes = [background.starting, destiny.starting]
+
+  let nextState = { ...baseState }
+  for (const node of startingNodes) {
+    if (!node) continue
+    nextState.spiritStones += node.spiritStones ?? 0
+    nextState.cultivation += node.cultivation ?? 0
+    nextState.learnedTechs = mergeUnique(nextState.learnedTechs, node.learnedTechs)
+    nextState.availableTechs = mergeUnique(nextState.availableTechs, node.availableTechs)
+    nextState.ownedRecipes = mergeUnique(nextState.ownedRecipes, node.ownedRecipes)
+    nextState.ownedFurnaces = mergeUnique(nextState.ownedFurnaces, node.ownedFurnaces)
+
+    for (const [itemId, count] of Object.entries(node.inventory ?? {})) {
+      nextState.inventory = addToInventory(nextState.inventory, itemId, count)
+    }
+  }
+
+  return {
+    ...nextState,
+    characterProfile: normalized,
+    cultivation: nextState.cultivation + (spiritRoot.bonuses?.startingCultivation ?? 0),
+  }
+}
+
+function isFreshRunState(state) {
+  if (!state) return true
+  return (
+    state.realmIndex === 0 &&
+    state.layer === 1 &&
+    (state.cultivation ?? 0) === 0 &&
+    (state.spiritStones ?? 0) === 0 &&
+    Object.keys(state.inventory ?? {}).length === 0 &&
+    (state.learnedTechs ?? []).length === 0 &&
+    !state.joinedSect
+  )
+}
+
 function App() {
-  const [state, setState] = useState(getDefaultState)
+  const [state, setState] = useState(loadSave)
   const [progress, setProgress] = useState(0)
   const [isCultivating, setIsCultivating] = useState(false)
   const [showBreakthrough, setShowBreakthrough] = useState(false)
@@ -223,7 +288,7 @@ function App() {
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [currentRegionId, setCurrentRegionId] = useState(null)
   const [regionLogs, setRegionLogs] = useState({})
-  const [pendingSect, setPendingSect] = useState(null)
+  const [pendingSects, setPendingSects] = useState([])
   const [pendingBandit, setPendingBandit] = useState(null)
   const banditPayGuardRef = useRef(false)
   const [breakthroughFailed, setBreakthroughFailed] = useState(false)
@@ -242,6 +307,8 @@ function App() {
   const [showCharacterStats, setShowCharacterStats] = useState(false)
   const [battleState, setBattleState] = useState(null)
   const [battleReward, setBattleReward] = useState(null)
+  const [showCharacterCreation, setShowCharacterCreation] = useState(true)
+  const [creationDraft, setCreationDraft] = useState(() => loadSave()?.characterProfile ?? getDefaultCharacterProfile())
 
   useEffect(() => {
     if (lastGain > 0) {
@@ -262,6 +329,23 @@ function App() {
     } catch (_) {}
   }, [autoCultivate])
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ...state,
+        characterProfile: normalizeCharacterProfile(state.characterProfile),
+      }))
+    } catch (_) {}
+  }, [state])
+
+  useEffect(() => {
+    if (!state.characterProfile) {
+      setCreationDraft(getDefaultCharacterProfile())
+      return
+    }
+    setCreationDraft(state.characterProfile)
+  }, [state.characterProfile])
+
   const {
     realmIndex,
     layer,
@@ -275,6 +359,7 @@ function App() {
     shopItems,
     learnedTechs = [],
     availableTechs = INITIAL_AVAILABLE_TECHNIQUES,
+    techniqueMastery = {},
     ownedRecipes = INITIAL_OWNED_RECIPES,
     learnedRecipes = [],
     ownedFurnaces = INITIAL_OWNED_FURNACES,
@@ -286,31 +371,53 @@ function App() {
     cuitiUsedCount = 0,
     xueUsedCount = 0,
     shenxingUsedCount = 0,
+    feishengUnlocked = false,
+    characterProfile = null,
   } = state
-  const isMaxRealm = realmIndex === REALMS.length - 1 && layer === LAYERS_PER_REALM
+  const creationBonuses = characterProfile
+    ? getCharacterBonuses(characterProfile)
+    : {
+        attackBonus: 0,
+        hpBonus: 0,
+        speedBonus: 0,
+        cultivationFlatBonus: 0,
+        cultivationRateMultiplier: 1,
+        treasureCostMultiplier: 1,
+      }
+  const selection = getCharacterSelection(characterProfile ?? getDefaultCharacterProfile())
+  const nextStage = getNextRealmLayer(realmIndex, layer, { feishengUnlocked })
+  const breakthroughLockedByOpportunity = !nextStage && isFeishengStage(realmIndex + 1) && !feishengUnlocked
+  const isMaxRealm = !nextStage
 
   const required = isMaxRealm
     ? Infinity
-    : layer === LAYERS_PER_REALM
-      ? getBreakthroughRequired(realmIndex + 1, 1)
-      : getBreakthroughRequired(realmIndex, layer + 1)
+    : getBreakthroughRequired(nextStage.realmIndex, nextStage.layer)
   const canBreakthrough = cultivation >= required && !isMaxRealm
 
-  const techniqueBonus = (learnedTechs ?? [])
-    .map((id) => getTechniqueById(id))
-    .filter(Boolean)
-    .reduce((sum, t) => sum + (t.cultivationBonus ?? 0), 0)
+  const learnedTechniqueBonuses = (learnedTechs ?? [])
+    .map((id) => {
+      const tech = getTechniqueById(id)
+      const exp = getTechniqueMasteryExp(techniqueMastery, id)
+      return getTechniqueEffectiveBonuses(tech, exp)
+    })
+    .reduce((sum, bonus) => ({
+      cultivationBonus: sum.cultivationBonus + (bonus.cultivationBonus ?? 0),
+      attackBonus: sum.attackBonus + (bonus.attackBonus ?? 0),
+      hpBonus: sum.hpBonus + (bonus.hpBonus ?? 0),
+      speedBonus: sum.speedBonus + (bonus.speedBonus ?? 0),
+    }), { cultivationBonus: 0, attackBonus: 0, hpBonus: 0, speedBonus: 0 })
 
-  const gainPerCycle = getCultivationGain(realmIndex, layer) + techniqueBonus
+  const baseCycleGain = getCultivationGain(realmIndex, layer) + learnedTechniqueBonuses.cultivationBonus + creationBonuses.cultivationFlatBonus
+  const gainPerCycle = Math.max(1, Math.round(baseCycleGain * creationBonuses.cultivationRateMultiplier))
   const equipmentAttackBonus = (equipment?.weapons ?? [])
     .filter(Boolean)
     .reduce((sum, s) => sum + getWeaponAttackBonus(s.itemId), 0)
-  const attack = getAttack(realmIndex, layer, equipmentAttackBonus + xueUsedCount * 2)
+  const attack = getAttack(realmIndex, layer, equipmentAttackBonus + xueUsedCount * 5 + creationBonuses.attackBonus + learnedTechniqueBonuses.attackBonus)
   const armorHpBonus = (equipment?.armors ?? [])
     .filter(Boolean)
     .reduce((sum, s) => sum + (getArmorHpBonus ? getArmorHpBonus(s.itemId) : 0), 0)
-  const hp = getHp(realmIndex, layer) + armorHpBonus + cuitiUsedCount * 5
-  const speed = getSpeed(realmIndex, layer) + shenxingUsedCount * 1
+  const hp = getHp(realmIndex, layer) + armorHpBonus + cuitiUsedCount * 10 + creationBonuses.hpBonus + learnedTechniqueBonuses.hpBonus
+  const speed = getSpeed(realmIndex, layer) + shenxingUsedCount * 1 + creationBonuses.speedBonus + learnedTechniqueBonuses.speedBonus
 
   useEffect(() => {
     if (!showTreasurePavilion) return
@@ -336,7 +443,8 @@ function App() {
         setProgress(0)
         setLastGain(gainPerCycle)
         setState((s) => {
-          const req = s.layer === LAYERS_PER_REALM ? getBreakthroughRequired(s.realmIndex + 1, 1) : getBreakthroughRequired(s.realmIndex, s.layer + 1)
+          const target = getNextRealmLayer(s.realmIndex, s.layer, { feishengUnlocked: s.feishengUnlocked ?? false })
+          const req = target ? getBreakthroughRequired(target.realmIndex, target.layer) : s.cultivation + gainPerCycle
           const newCultivation = Math.min(s.cultivation + gainPerCycle, req)
           return { ...s, cultivation: newCultivation }
         })
@@ -367,8 +475,8 @@ function App() {
     })
   }, [])
 
-  const isBigRealmBreak = layer === LAYERS_PER_REALM
-  const nextRealmIndex = isBigRealmBreak ? realmIndex + 1 : realmIndex
+  const isBigRealmBreak = isMajorRealmBreak(realmIndex, layer, { feishengUnlocked })
+  const nextRealmIndex = nextStage?.realmIndex ?? realmIndex
   const pillBonus = pillSuccessBonus?.[nextRealmIndex] ?? 0
   // 大境界突破基础成功率：初始约 60%，多次失败后逐步降低到 10%
   const baseBigRealmRate = Math.max(10, 60 - (bigRealmBreakCount ?? 0) * 10)
@@ -379,24 +487,20 @@ function App() {
     if (isBigRealmBreak) {
       const roll = Math.random() * 100
       if (roll >= bigRealmSuccessRate) {
-        setState((s) => ({ ...s, cultivation: 0 }))
+        setState((s) => ({ ...s, cultivation: 0, bigRealmBreakCount: (s.bigRealmBreakCount ?? 0) + 1 }))
         setBreakthroughFailed(true)
         return
       }
     }
     setBreakthroughFailed(false)
-    let nextRealm = realmIndex
-    let nextLayer = layer + 1
-    if (nextLayer > LAYERS_PER_REALM) {
-      nextLayer = 1
-      nextRealm = realmIndex + 1
-    }
+    const target = getNextRealmLayer(realmIndex, layer, { feishengUnlocked })
+    if (!target) return
     setState((s) => ({
       ...s,
-      realmIndex: nextRealm,
-      layer: nextLayer,
+      realmIndex: target.realmIndex,
+      layer: target.layer,
       cultivation: s.cultivation - required,
-      bigRealmBreakCount: isBigRealmBreak ? (s.bigRealmBreakCount ?? 0) + 1 : s.bigRealmBreakCount,
+      bigRealmBreakCount: isBigRealmBreak ? 0 : s.bigRealmBreakCount,
     }))
     setShowBreakthrough(false)
   }, [canBreakthrough, realmIndex, layer, required, isBigRealmBreak, bigRealmSuccessRate])
@@ -515,19 +619,32 @@ function App() {
   }, [])
 
   /** 使用直接类丹药：
-   * - 凝气丹：直接增加修为（不超过当前突破所需）
-   * - 淬体丹 / 血丹 / 神行丹：增加血量 / 攻击 / 速度，使用次数有限
+   * - 养魂丹 / 养魂精丹：直接增加修为（不超过当前突破所需）
+   * - 淬体丹 / 龙力丹 / 神行丹：增加血量 / 攻击 / 速度，使用次数有限
    */
   const handleUseDirectPill = useCallback((itemId) => {
     setState((s) => {
       const inv = s.inventory ?? {}
       if ((inv[itemId] ?? 0) < 1) return s
+      const item = getItemById(itemId)
+      if (item?.fillCurrentRealm) {
+        const target = getNextRealmLayer(s.realmIndex, s.layer, { feishengUnlocked: s.feishengUnlocked ?? false })
+        const req = target
+          ? getBreakthroughRequired(target.realmIndex, target.layer)
+          : s.cultivation
+        return {
+          ...s,
+          cultivation: req,
+          inventory: removeFromInventory(inv, itemId, 1),
+        }
+      }
       const gain = getPillCultivationGain(itemId)
-      // 凝气丹：增加修为
+      // 养魂类丹药：增加修为
       if (gain > 0) {
-        const req = s.layer === LAYERS_PER_REALM
-          ? getBreakthroughRequired(s.realmIndex + 1, 1)
-          : getBreakthroughRequired(s.realmIndex, s.layer + 1)
+        const target = getNextRealmLayer(s.realmIndex, s.layer, { feishengUnlocked: s.feishengUnlocked ?? false })
+        const req = target
+          ? getBreakthroughRequired(target.realmIndex, target.layer)
+          : s.cultivation + gain
         const newCultivation = Math.min(s.cultivation + gain, req)
         return {
           ...s,
@@ -535,7 +652,7 @@ function App() {
           inventory: removeFromInventory(inv, itemId, 1),
         }
       }
-      // 淬体丹 / 血丹 / 神行丹：有限次数加成
+      // 淬体丹 / 龙力丹 / 神行丹：有限次数加成
       if (itemId === 'cuiti_dan') {
         const used = s.cuitiUsedCount ?? 0
         if (used >= 50) return s
@@ -545,7 +662,7 @@ function App() {
           inventory: removeFromInventory(inv, itemId, 1),
         }
       }
-      if (itemId === 'xue_dan') {
+      if (itemId === 'longli_dan') {
         const used = s.xueUsedCount ?? 0
         if (used >= 50) return s
         return {
@@ -575,7 +692,7 @@ function App() {
       const cur = inv[itemId] ?? 0
       if (cur < 1) return s
       const bonus = s.pillSuccessBonus ?? {}
-      const newBonus = { ...bonus, [pill.realmIndex]: (bonus[pill.realmIndex] ?? 0) + 5 }
+      const newBonus = { ...bonus, [pill.realmIndex]: Math.min(35, (bonus[pill.realmIndex] ?? 0) + 5) }
       const newInv = { ...inv }
       if (cur <= 1) delete newInv[itemId]
       else newInv[itemId] = cur - 1
@@ -623,29 +740,42 @@ function App() {
     setCurrentRegionId(regionId)
     setShowWorldMap(false)
     setShowRegionScene(true)
-    setPendingSect(null)
     setPendingBandit(null)
   }, [])
 
-  const handleExploreRegion = useCallback((regionId) => {
-    // 每小时基础 10 次探索，可额外购买次数
-    const now = Date.now()
-    if (now - exploreWindowStart >= 60 * 60 * 1000) {
-      setExploreWindowStart(now)
-      setExploreUsed(0)
-      setExploreExtra(0)
-    }
-    const maxCount = 10 + exploreExtra
-    if (exploreUsed >= maxCount) {
-      const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
-      appendRegionLog(regionId, `你在${regionName}四处搜寻，却感到精力不济，本小时的探索次数似乎已经耗尽。`)
+  const pushDiscoveredSect = useCallback((sect, regionId, mode = 'interactive') => {
+    const discoveredSect = { ...sect, discoveredRegionId: regionId }
+    let added = false
+    setPendingSects((prev) => {
+      if (prev.some((item) => item.id === sect.id)) return prev
+      added = true
+      return [...prev, discoveredSect]
+    })
+    if (!added) {
+      appendRegionLog(regionId, `你再次路过「${sect.name}」，山门依旧巍峨，只是这次未见更多异状。`)
       return
     }
-    setExploreUsed((v) => v + 1)
+    if (mode === 'batch') {
+      appendRegionLog(regionId, `你在连续探索中记下了「${sect.name}」的山门位置，已列入可拜访宗门。`)
+      return
+    }
+    const requirementText = sect.requiresTrial
+      ? '需通过圣地考核'
+      : sect.level <= 3
+        ? '暂无门槛'
+        : `需至少修至「${REALMS[sect.minRealmIndex] ?? '更高境界'}」`
+    appendRegionLog(
+      regionId,
+      joinedSect
+        ? `你远远望见一座宗门——「${sect.name}」（${sect.levelLabel}，${requirementText}）。你虽已另有师承，仍先将其记入可接触宗门列表。`
+        : `你远远望见一座宗门——「${sect.name}」（${sect.levelLabel}，${requirementText}），已记入可接触宗门列表。`,
+    )
+  }, [appendRegionLog, joinedSect])
+
+  const processExploreEvent = useCallback((regionId, { interactive = true } = {}) => {
     const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
     const roll = Math.random()
     if (roll < 0.35) {
-      // 灵石收获
       const delta = 1 + Math.floor(Math.random() * 100)
       setState((s) => ({
         ...s,
@@ -655,7 +785,6 @@ function App() {
       return
     }
     if (roll < 0.7 && MATERIAL_IDS.length > 0) {
-      // 炼丹材料收获
       const mid = MATERIAL_IDS[Math.floor(Math.random() * MATERIAL_IDS.length)]
       const count = 1 + Math.floor(Math.random() * 10)
       const item = getItemById(mid)
@@ -667,9 +796,7 @@ function App() {
       appendRegionLog(regionId, `在${regionName}密林中，你找到 ${name} ×${count}。`)
       return
     }
-    // 打劫事件
     if (roll < 0.88) {
-      // 敌人境界：更倾向于 主角同境界、低一境界或高一境界，其它境界也有较小概率
       const offsets = [0, -1, 1, -2, 2, -3, 3]
       const weights = [0.4, 0.2, 0.2, 0.08, 0.08, 0.02, 0.02]
       const r = Math.random()
@@ -685,6 +812,30 @@ function App() {
       const candidate = realmIndex + pickedOffset
       const enemyRealmIndex = Math.min(REALMS.length - 1, Math.max(0, candidate))
       const enemyRealmName = REALMS[enemyRealmIndex]
+      if (!interactive) {
+        let successChance = 0.5 + 0.1 * (realmIndex - enemyRealmIndex)
+        successChance = Math.max(0.2, Math.min(0.8, successChance))
+        const win = Math.random() < successChance
+        if (win) {
+          const gain = 100 + Math.floor(Math.random() * 2901)
+          setState((s) => ({
+            ...s,
+            spiritStones: (s.spiritStones ?? 0) + gain,
+          }))
+          appendRegionLog(regionId, `你在连续探索中与一名「${enemyRealmName}」修士交手，胜出后夺得 ${gain} 枚灵石。`)
+        } else {
+          setState((s) => {
+            const cur = s.spiritStones ?? 0
+            const loss = Math.floor(cur / 2)
+            return {
+              ...s,
+              spiritStones: cur - loss,
+            }
+          })
+          appendRegionLog(regionId, `你在连续探索中遭遇一名「${enemyRealmName}」修士，不敌之下被夺去一半灵石。`)
+        }
+        return
+      }
       setPendingBandit({ regionId, enemyRealmIndex, enemyRealmName })
       appendRegionLog(
         regionId,
@@ -692,30 +843,62 @@ function App() {
       )
       return
     }
-    // 宗门奇遇
     const sect = getRandomSectForRegion(regionId)
     if (!sect) {
       appendRegionLog(regionId, `你在${regionName}四处游历，却一无所获。`)
       return
     }
-    if (joinedSect) {
-      appendRegionLog(
-        regionId,
-        `你路过「${sect.name}」，对方察觉你已身在他门，只是客气寒暄几句，婉拒你进一步拜访。`,
-      )
+    pushDiscoveredSect(sect, regionId, interactive ? 'interactive' : 'batch')
+  }, [appendRegionLog, joinedSect, realmIndex, pushDiscoveredSect])
+
+  const handleExploreRegion = useCallback((regionId) => {
+    const now = Date.now()
+    if (now - exploreWindowStart >= 60 * 60 * 1000) {
+      setExploreWindowStart(now)
+      setExploreUsed(0)
+      setExploreExtra(0)
+    }
+    const maxCount = 10 + exploreExtra
+    if (exploreUsed >= maxCount) {
+      const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
+      appendRegionLog(regionId, `你在${regionName}四处搜寻，却感到精力不济，本小时的探索次数似乎已经耗尽。`)
       return
     }
-    setPendingSect(sect)
-    const needRealmName = REALMS[sect.minRealmIndex] ?? '更高境界'
-    appendRegionLog(
-      regionId,
-      `你远远望见一座宗门——「${sect.name}」（${sect.levelLabel}，需至少修至「${needRealmName}」），似乎可以前往拜访。`,
-    )
-  }, [appendRegionLog, exploreWindowStart, exploreUsed, exploreExtra, joinedSect])
+    setExploreUsed((v) => v + 1)
+    processExploreEvent(regionId, { interactive: true })
+  }, [appendRegionLog, exploreWindowStart, exploreUsed, exploreExtra, processExploreEvent])
 
-  const handleDismissSect = useCallback(() => {
-    setPendingSect(null)
-  }, [])
+  const handleExploreRegionTen = useCallback((regionId) => {
+    const now = Date.now()
+    const expired = now - exploreWindowStart >= 60 * 60 * 1000
+    const baseUsed = expired ? 0 : exploreUsed
+    const baseExtra = expired ? 0 : exploreExtra
+    if (expired) {
+      setExploreWindowStart(now)
+      setExploreExtra(0)
+    }
+    const maxCount = 10 + baseExtra
+    const available = Math.max(0, maxCount - baseUsed)
+    if (available <= 0) {
+      const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
+      appendRegionLog(regionId, `你想在${regionName}连续探索十次，却发现本小时的探索次数已经耗尽。`)
+      return
+    }
+    const actualRuns = Math.min(10, available)
+    setExploreUsed(baseUsed + actualRuns)
+    appendRegionLog(regionId, `你在${REGION_NAME_MAP[regionId] ?? '此地'}凝神搜山，连续探索了 ${actualRuns} 次。`)
+    for (let i = 0; i < actualRuns; i += 1) {
+      processExploreEvent(regionId, { interactive: false })
+    }
+  }, [appendRegionLog, exploreWindowStart, exploreUsed, exploreExtra, processExploreEvent])
+
+  const handleDismissSect = useCallback((sectId) => {
+    if (!sectId) return
+    setPendingSects((prev) => prev.filter((sect) => sect.id !== sectId))
+    if (currentRegionId) {
+      appendRegionLog(currentRegionId, '你将这处宗门记号暂且划去，打算日后再议。')
+    }
+  }, [appendRegionLog, currentRegionId])
 
   const resolveBanditFight = useCallback((winFromEscape = false) => {
     if (!pendingBandit) return
@@ -757,9 +940,10 @@ function App() {
     if (!pendingBandit || !currentRegionId) return
     const { enemyRealmIndex, enemyRealmName } = pendingBandit
     // 敌方基础属性按其境界计算，再加少量随机浮动
-    const enemyBaseAttack = getAttack(enemyRealmIndex, Math.min(LAYERS_PER_REALM, layer + 1), 0)
-    const enemyBaseHp = getHp(enemyRealmIndex, Math.min(LAYERS_PER_REALM, layer + 1))
-    const enemyBaseSpeed = getSpeed(enemyRealmIndex, Math.min(LAYERS_PER_REALM, layer + 1))
+    const enemyLayer = Math.min(getRealmLayerCount(enemyRealmIndex), layer + 1)
+    const enemyBaseAttack = getAttack(enemyRealmIndex, enemyLayer, 0)
+    const enemyBaseHp = getHp(enemyRealmIndex, enemyLayer)
+    const enemyBaseSpeed = getSpeed(enemyRealmIndex, enemyLayer)
 
     // 随机 4 件法器和 4 件防具加成
     const shuffledWeapons = [...WEAPON_IDS].sort(() => Math.random() - 0.5)
@@ -843,6 +1027,49 @@ function App() {
     handleBanditFight()
   }, [appendRegionLog, currentRegionId, pendingBandit, handleBanditFight])
 
+  const handleChallengeSect = useCallback((sect) => {
+    if (!sect || !currentRegionId) return
+    const baseRealmByLevel = {
+      1: 10,
+      2: 15,
+      3: 18,
+      4: 29,
+      5: 34,
+      6: 38,
+    }
+    const enemyRealmIndex = sect.minRealmIndex ?? baseRealmByLevel[sect.level] ?? realmIndex
+    const enemyLayer = Math.min(getRealmLayerCount(enemyRealmIndex), Math.max(1, layer))
+    const enemyBaseAttack = getAttack(enemyRealmIndex, enemyLayer, 0)
+    const enemyBaseHp = getHp(enemyRealmIndex, enemyLayer)
+    const enemyBaseSpeed = getSpeed(enemyRealmIndex, enemyLayer)
+    const enemyAttack = Math.floor(enemyBaseAttack * (1 + sect.level * 0.04))
+    const enemyHpMax = Math.floor(enemyBaseHp * (1 + sect.level * 0.06))
+    const enemySpeed = Math.max(5, Math.floor(enemyBaseSpeed * (1 + sect.level * 0.03)))
+    const playerHpMax = hp
+    const playerSpeed = speed
+    const firstTurn = playerSpeed >= enemySpeed ? 'player' : 'enemy'
+
+    appendRegionLog(currentRegionId, `你向「${sect.name}」山门递上战帖，请求与门下修士切磋一场。`)
+    setBattleState({
+      source: 'sect',
+      sectId: sect.id,
+      sectName: sect.name,
+      enemyName: `${sect.name}守山弟子`,
+      enemyAttack,
+      enemyHpMax,
+      enemyHp: enemyHpMax,
+      enemySpeed,
+      playerAttack: attack,
+      playerHpMax,
+      playerHp: playerHpMax,
+      playerSpeed,
+      turn: firstTurn,
+      finished: false,
+      winner: null,
+      log: [`你与「${sect.name}」门下修士当场切磋，四周观战者渐渐聚拢。`],
+    })
+  }, [appendRegionLog, attack, currentRegionId, hp, layer, realmIndex, speed])
+
   const handleBattleNextTurn = useCallback(() => {
     setBattleState((state) => {
       if (!state || state.finished) return state
@@ -925,23 +1152,53 @@ function App() {
     setPendingBandit(null)
   }, [battleState, pendingBandit, currentRegionId, appendRegionLog])
 
-  const handleJoinSect = useCallback(() => {
-    if (!pendingSect) return
-    const { minRealmIndex } = pendingSect
-    if (realmIndex < minRealmIndex) {
-      appendRegionLog(currentRegionId, `你尝试加入「${pendingSect.name}」，但境界不足，被守门弟子婉拒。`)
-      setPendingSect(null)
+  useEffect(() => {
+    if (!battleState || !battleState.finished || battleState.source !== 'sect' || !currentRegionId) return
+    const sect = pendingSects.find((item) => item.id === battleState.sectId)
+    const sectName = sect?.name ?? battleState.sectName ?? '该宗门'
+    if (battleState.winner === 'player') {
+      const rewardStones = 120 * ((sect?.level ?? 1) + 1)
+      setState((s) => ({
+        ...s,
+        spiritStones: (s.spiritStones ?? 0) + rewardStones,
+      }))
+      appendRegionLog(currentRegionId, `你在「${sectName}」山门前切磋得胜，赢得围观弟子侧目，并获赠 ${rewardStones} 枚灵石作为彩头。`)
+    } else if (battleState.winner === 'draw') {
+      appendRegionLog(currentRegionId, `你与「${sectName}」门下修士打成平手，对方对你多了几分正视。`)
+    } else if (battleState.winner === 'enemy') {
+      appendRegionLog(currentRegionId, `你在「${sectName}」前切磋失利，只得拱手退下，暂且记住这一战。`)
+    }
+    setBattleState(null)
+  }, [battleState, currentRegionId, pendingSects, appendRegionLog])
+
+  const handleJoinSect = useCallback((sect) => {
+    if (!sect) return
+    if (joinedSect?.id === sect.id) {
+      appendRegionLog(currentRegionId, `你本就是「${sect.name}」门下弟子，无需再次拜入。`)
+      return
+    }
+    if (joinedSect) {
+      appendRegionLog(currentRegionId, `你已拜入「${joinedSect.name}」，若想转投「${sect.name}」，需先回原宗退出宗门。`)
+      return
+    }
+    const { minRealmIndex, requiresTrial } = sect
+    if (requiresTrial) {
+      appendRegionLog(currentRegionId, `你尝试拜入「${sect.name}」，却被告知圣地需先通过专门考核，具体内容尚未开放。`)
+      return
+    }
+    if (minRealmIndex != null && realmIndex < minRealmIndex) {
+      appendRegionLog(currentRegionId, `你尝试加入「${sect.name}」，但境界不足，被守门弟子婉拒。`)
       return
     }
     setState((s) => ({
       ...s,
-      joinedSect: pendingSect,
+      joinedSect: sect,
       sectContribution: 0,
       sectRankIndex: 0,
     }))
-    appendRegionLog(currentRegionId, `你正式拜入「${pendingSect.name}」，成为其门下弟子。`)
-    setPendingSect(null)
-  }, [pendingSect, realmIndex, currentRegionId, appendRegionLog])
+    appendRegionLog(currentRegionId, `你正式拜入「${sect.name}」，成为其门下弟子。`)
+    setPendingSects((prev) => prev.filter((item) => item.id !== sect.id))
+  }, [realmIndex, currentRegionId, appendRegionLog, joinedSect])
 
   const handleAddContribution = useCallback((amount) => {
     setState((s) => ({
@@ -1014,6 +1271,35 @@ function App() {
       return {
         ...s,
         learnedTechs: [...learned, techId],
+        techniqueMastery: { ...(s.techniqueMastery ?? {}), [techId]: s.techniqueMastery?.[techId] ?? 0 },
+      }
+    })
+  }, [])
+
+  const handlePracticeTechnique = useCallback((techId) => {
+    setState((s) => {
+      const learned = s.learnedTechs ?? []
+      if (!learned.includes(techId)) return s
+      return {
+        ...s,
+        techniqueMastery: {
+          ...(s.techniqueMastery ?? {}),
+          [techId]: (s.techniqueMastery?.[techId] ?? 0) + 1,
+        },
+      }
+    })
+  }, [])
+
+  const handleInsightTechnique = useCallback((techId) => {
+    setState((s) => {
+      const learned = s.learnedTechs ?? []
+      if (!learned.includes(techId)) return s
+      return {
+        ...s,
+        techniqueMastery: {
+          ...(s.techniqueMastery ?? {}),
+          [techId]: (s.techniqueMastery?.[techId] ?? 0) + 3,
+        },
       }
     })
   }, [])
@@ -1045,18 +1331,18 @@ function App() {
     setState((s) => {
       const learned = s.learnedRecipes ?? []
       if (!learned.includes(pillId)) return s
-      if (!canCraftWithInventory(pillId, s.inventory)) return s
+      if (!canCraftWithInventory(pillId, s.inventory, creationBonuses.treasureCostMultiplier)) return s
       const rate = getCraftSuccessRate(pillId, s.equippedFurnaceId ?? null)
       const success = Math.random() * 100 < rate
-      const inv = deductCraftMaterials(s.inventory, pillId)
-      const count = success ? getCraftResultCount() : 0
+      const inv = deductCraftMaterials(s.inventory, pillId, creationBonuses.treasureCostMultiplier)
+      const count = success ? getCraftResultCount(pillId) : 0
       return {
         ...s,
         inventory: success ? addToInventory(inv, pillId, count) : inv,
         lastCraftResult: { success, pillId, count },
       }
     })
-  }, [])
+  }, [creationBonuses.treasureCostMultiplier])
 
   const handleBuyItem = useCallback((itemId, price) => {
     setState((s) => {
@@ -1110,6 +1396,28 @@ function App() {
     })
   }, [])
 
+  const handleCharacterDraftChange = useCallback((patch) => {
+    setCreationDraft((prev) => ({ ...prev, ...patch }))
+  }, [])
+
+  const handleCreateCharacter = useCallback(() => {
+    const normalizedProfile = normalizeCharacterProfile(creationDraft)
+    setState((prev) => {
+      if (!isFreshRunState(prev)) {
+        return { ...prev, characterProfile: normalizedProfile }
+      }
+      return buildCharacterState(normalizedProfile)
+    })
+    setShowCharacterCreation(false)
+    setShowCharacterStats(false)
+    setShowLoadModal(false)
+    setShowSaveModal(false)
+  }, [creationDraft])
+
+  const handleStartNewCharacter = useCallback(() => {
+    setCreationDraft(getDefaultCharacterProfile())
+  }, [])
+
   return (
     <div className="app">
       <header className="header">
@@ -1119,7 +1427,11 @@ function App() {
         </div>
         <div className="header-center">
           <h1>修仙传</h1>
-          <p className="subtitle">问道长生</p>
+          <p className="subtitle">
+            {characterProfile
+              ? `${characterProfile.name} · ${selection.gender.label} · ${selection.spiritRoot.label}`
+              : '问道长生'}
+          </p>
         </div>
       </header>
       <SaveSlotModal
@@ -1137,8 +1449,19 @@ function App() {
         getSlotInfo={getSlotInfo}
         onLoad={(index) => {
           const loaded = loadFromSlot(index)
-          if (loaded) setState(loaded)
+          if (loaded) {
+            setState(loaded)
+            setShowCharacterCreation(!loaded.characterProfile)
+          }
         }}
+      />
+      <CharacterCreationModal
+        show={showCharacterCreation}
+        draft={creationDraft}
+        onChange={handleCharacterDraftChange}
+        onConfirm={handleCreateCharacter}
+        onOpenLoad={() => setShowLoadModal(true)}
+        onStartNew={handleStartNewCharacter}
       />
 
       <main className="main">
@@ -1273,11 +1596,13 @@ function App() {
         onUsePillInBreakthrough={handleUsePill}
         currentRealm={getRealmDisplayName(realmIndex, layer)}
         nextRealm={
-          layer === LAYERS_PER_REALM
-            ? `${REALMS[realmIndex + 1]} 第1层`
-            : `${REALMS[realmIndex]} 第${layer + 1}层`
+          nextStage
+            ? getRealmDisplayName(nextStage.realmIndex, nextStage.layer)
+            : breakthroughLockedByOpportunity
+              ? '需机缘或传承开启'
+              : '已至尽头'
         }
-        nextRealmIndex={isBigRealmBreak ? realmIndex + 1 : null}
+        nextRealmIndex={isBigRealmBreak && nextStage ? nextStage.realmIndex : null}
         required={required}
         isBigRealmBreak={isBigRealmBreak}
         successRate={bigRealmSuccessRate}
@@ -1314,7 +1639,10 @@ function App() {
         onClose={() => setShowTechniquePavilion(false)}
         learned={learnedTechs}
         available={availableTechs}
+        mastery={techniqueMastery}
         onLearn={handleLearnTechnique}
+        onPractice={handlePracticeTechnique}
+        onInsight={handleInsightTechnique}
       />
 
       <AlchemyRoomModal
@@ -1328,6 +1656,7 @@ function App() {
         ownedFurnaces={ownedFurnaces}
         equippedFurnaceId={equippedFurnaceId}
         inventory={inventory}
+        materialCostMultiplier={creationBonuses.treasureCostMultiplier}
         lastCraftResult={lastCraftResult}
         onClearCraftResult={() => setState((s) => ({ ...s, lastCraftResult: null }))}
         onUseRecipe={handleUseRecipe}
@@ -1371,17 +1700,18 @@ function App() {
               return next
             })
           }
-          setPendingSect(null)
           setPendingBandit(null)
           setShowWorldMap(true)
         }}
         logs={regionLogs[currentRegionId] ?? []}
         exploreRemaining={Math.max(0, 10 + exploreExtra - exploreUsed)}
-        pendingSect={pendingSect}
+        pendingSects={pendingSects.filter((sect) => sect.discoveredRegionId === currentRegionId)}
         pendingBandit={pendingBandit}
         onExplore={handleExploreRegion}
+        onExploreTen={handleExploreRegionTen}
         onJoinSect={handleJoinSect}
         onDismissSect={handleDismissSect}
+        onChallengeSect={handleChallengeSect}
         onBuyExploreChance={handleBuyExploreChance}
         onBanditFight={handleBanditFight}
         onBanditPay={handleBanditPay}
@@ -1408,6 +1738,26 @@ function App() {
             </button>
             <h3 className="character-stats-modal-title">人物属性</h3>
             <div className="character-stats-row">
+              <span className="label">姓名</span>
+              <span className="value">{characterProfile?.name ?? '未入道'}</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">性别</span>
+              <span className="value">{selection.gender.label}</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">灵根</span>
+              <span className="value">{selection.spiritRoot.label}</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">家境</span>
+              <span className="value">{selection.background.label}</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">机遇</span>
+              <span className="value">{selection.destiny.label}</span>
+            </div>
+            <div className="character-stats-row">
               <span className="label">攻击</span>
               <span className="value">{attack}</span>
             </div>
@@ -1418,6 +1768,18 @@ function App() {
             <div className="character-stats-row">
               <span className="label">速度</span>
               <span className="value">{speed}</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">修炼效率</span>
+              <span className="value">{Math.round(creationBonuses.cultivationRateMultiplier * 100)}%</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">修炼加成</span>
+              <span className="value">{creationBonuses.cultivationFlatBonus >= 0 ? '+' : ''}{creationBonuses.cultivationFlatBonus}/轮</span>
+            </div>
+            <div className="character-stats-row">
+              <span className="label">灵材消耗</span>
+              <span className="value">{Math.round(creationBonuses.treasureCostMultiplier * 100)}%</span>
             </div>
           </div>
         </div>

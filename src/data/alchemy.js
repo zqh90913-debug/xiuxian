@@ -11,20 +11,25 @@ export const INITIAL_OWNED_RECIPES = []
 
 /** 炼制配方：pillId -> { materials: { materialId: count } }，品级越高消耗总量越多 */
 export const CRAFT_RECIPES = {
-  zhuji_dan: { materials: { an_sha: 2, bi_yin: 1 } },
-  yuanshen_dan: { materials: { zi_tong: 2, wu_shi: 2 } },
-  ningqi_dan: { materials: { chi_yu: 2, an_sha: 2, wu_shi: 3 } },
-  yuanying_dan: { materials: { gu_lingzhi: 4, di_nvlu: 3, shen_shupi: 3, yang_hunhua: 2 } },
-  huashen_dan: { materials: { wan_moyu: 3, yang_hunhua: 3, fu_yunguo: 4, qi_xian_yu: 5 } },
-  heti_dan: { materials: { gu_lingzhi: 4, di_nvlu: 4, shen_shupi: 4, wan_moyu: 3, yang_hunhua: 3 } },
-  dujie_dan: { materials: { bingxue_ziling_guo: 4, jinsha_chigui_tong: 4, qingjing_shenshen_ye: 4, qisha_gumanao: 5, xisui_wushi: 5 } },
-  dacheng_dan: { materials: { lingyuan_anjing_yan: 5, jinsha_wucao: 6, bingxue_ziling_guo: 5, jinsha_chigui_tong: 5, qingjing_shenshen_ye: 5 } },
-  // 一品淬体丹：用初级材料，消耗总量略低于同品突破丹
-  cuiti_dan: { materials: { an_sha: 2, wu_shi: 2 } },
-  // 二品血丹：用初级材料，比淬体丹略贵
-  xue_dan: { materials: { bi_yin: 2, zi_tong: 2, chi_yu: 1 } },
-  // 二品神行丹：用初级+少量中级材料，体现稀有度
-  shenxing_dan: { materials: { chi_yu: 2, an_sha: 2, gu_lingzhi: 1 } },
+  cuiti_dan: { materials: { wu_sha: 2, yun_tie: 3, ling_shui: 2 } },
+  yanghun_dan: { materials: { mi_yu: 2, gu_yin: 2, ling_shui: 3 } },
+  longli_dan: { materials: { chi_yu: 3, zi_tong: 2, xuan_tie: 2 } },
+  shenxing_dan: { materials: { wu_sha: 2, wu_jing: 2, ling_shui: 2 } },
+  pojing_dan_1: { materials: { chi_yu: 3, zi_tong: 3, gu_yin: 2 } },
+  pojing_dan_2: { materials: { mi_yu: 3, xuan_tie: 2, ling_shui: 4 } },
+  yanghun_jingdan: { materials: { wu_jing: 3, mi_yu: 3, ling_shui: 4 } },
+  pojing_dan_3: { materials: { chi_mo_tie: 3, qing_gu_sha: 4, di_nv_lu: 2 } },
+  pojing_dan_4: { materials: { zi_xuan_shi: 4, yang_hun_hua: 3, fu_yun_guo: 3 } },
+  dahuan_dan: { materials: { chi_mo_tie: 4, yang_hun_hua: 4, di_nv_lu: 3 } },
+  pojing_dan_5: { materials: { an_jing_tie: 4, chi_gui_jin: 3, wu_gu_xu: 3 } },
+  pojing_dan_6: { materials: { qing_gu_sha: 4, di_nv_lu: 3, fu_yun_guo: 4 } },
+  pojing_dan_7: { materials: { xuan_yin_chi_gui_jin: 3, jin_sha_tong: 3, qi_sha_gu_ma_nao: 2 } },
+  puti_dahuan_dan: { materials: { qi_sha_gu_ma_nao: 3, wu_ding_bi_bao_shen: 2, qi_qiao_wu_mi_shui_jing: 2 } },
+  pojing_dan_8: { materials: { yun_yu_bi_zhen_mu: 3, qi_qiao_wu_mi_shui_jing: 2, xi_sui_wu_shi: 2 } },
+  pojing_dan_9: { materials: { qi_sha_gu_ma_nao: 3, wu_ding_bi_bao_shen: 3, jin_sha_tong: 3 } },
+  pojing_dan_10: { materials: { xuan_yin_chi_gui_jin: 4, yun_yu_bi_zhen_mu: 3, qi_qiao_wu_mi_shui_jing: 3 } },
+  pojing_dan_11: { materials: { qi_sha_gu_ma_nao: 4, xi_sui_wu_shi: 4, wu_ding_bi_bao_shen: 4 } },
+  qiankun_zaohua_dan: { materials: { xuan_yin_chi_gui_jin: 4, qi_sha_gu_ma_nao: 4, qi_qiao_wu_mi_shui_jing: 3 } },
 }
 
 export { FURNACES }
@@ -37,9 +42,16 @@ export function getCraftRecipeMaterials(pillId) {
   return CRAFT_RECIPES[pillId]?.materials ?? {}
 }
 
-/** 检查背包材料是否满足炼制 */
-export function canCraftWithInventory(pillId, inventory) {
+export function getScaledCraftRecipeMaterials(pillId, materialCostMultiplier = 1) {
   const materials = getCraftRecipeMaterials(pillId)
+  return Object.fromEntries(
+    Object.entries(materials).map(([mid, need]) => [mid, Math.max(1, Math.ceil(need * materialCostMultiplier))]),
+  )
+}
+
+/** 检查背包材料是否满足炼制 */
+export function canCraftWithInventory(pillId, inventory, materialCostMultiplier = 1) {
+  const materials = getScaledCraftRecipeMaterials(pillId, materialCostMultiplier)
   for (const [mid, need] of Object.entries(materials)) {
     if ((inventory?.[mid] ?? 0) < need) return false
   }
@@ -47,8 +59,8 @@ export function canCraftWithInventory(pillId, inventory) {
 }
 
 /** 扣除炼制消耗的材料，返回新背包（调用方需已通过 canCraftWithInventory） */
-export function deductCraftMaterials(inventory, pillId) {
-  const materials = getCraftRecipeMaterials(pillId)
+export function deductCraftMaterials(inventory, pillId, materialCostMultiplier = 1) {
+  const materials = getScaledCraftRecipeMaterials(pillId, materialCostMultiplier)
   let inv = { ...(inventory ?? {}) }
   for (const [mid, count] of Object.entries(materials)) {
     const cur = inv[mid] ?? 0
@@ -60,9 +72,6 @@ export function deductCraftMaterials(inventory, pillId) {
 }
 
 export const CRAFT_DURATION_MS = 10000
-export const CRAFT_MIN_COUNT = 1
-export const CRAFT_MAX_COUNT = 3
-
 /** 炼制基础成功率：整体偏低，品级越高越低 */
 export function getBaseCraftSuccessRate(pillGrade) {
   // 一品基础约 55%，九品基础约  -? 取下限 10%
@@ -87,9 +96,12 @@ export function getCraftSuccessRate(pillId, equippedFurnaceId) {
   return Math.min(100, base + bonus)
 }
 
-/** 成功时获得数量 [3, 10] 随机 */
-export function getCraftResultCount() {
-  return CRAFT_MIN_COUNT + Math.floor(Math.random() * (CRAFT_MAX_COUNT - CRAFT_MIN_COUNT + 1))
+/** 成功时获得数量：1-3品 7-10 枚，4-6品 3-5 枚，7-9品 1-3 枚 */
+export function getCraftResultCount(pillId) {
+  const grade = PILLS[pillId]?.grade ?? 1
+  if (grade <= 3) return 7 + Math.floor(Math.random() * 4)
+  if (grade <= 6) return 3 + Math.floor(Math.random() * 3)
+  return 1 + Math.floor(Math.random() * 3)
 }
 
 export function getRecipe(id) {

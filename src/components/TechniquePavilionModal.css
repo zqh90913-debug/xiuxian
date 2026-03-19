@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(to bottom, rgba(20, 14, 10, 0.5), rgba(20, 14, 10, 0.8)),
+    linear-gradient(to bottom, rgba(20, 14, 10, 0.5), rgba(20, 14, 10, 0.82)),
     url('/technique-pavilion-bg.png');
   background-size: cover;
   background-position: center;
@@ -15,14 +15,14 @@
 }
 
 .tech-modal {
-  background: rgba(20, 14, 10, 0.88);
+  background: rgba(20, 14, 10, 0.9);
   border: 2px solid var(--slot-border);
   border-radius: 4px;
-  max-width: 880px;
+  max-width: 1080px;
   width: 100%;
   max-height: calc(100vh - 1.5rem);
   overflow-y: auto;
-  padding: 0.75rem;
+  padding: 0.8rem;
 }
 
 .tech-modal-header {
@@ -30,33 +30,72 @@
   justify-content: flex-start;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
 .tech-modal-header h3 {
   font-family: 'Ma Shan Zheng', cursive;
-  font-size: 1.3rem;
+  font-size: 1.35rem;
   color: var(--gold);
 }
 
-.tech-modal-header .btn-close {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.85rem;
-  background: var(--btn-bg);
-  color: var(--ink);
+.tech-modal-header .btn-close,
+.btn-practice,
+.btn-insight,
+.btn-learn,
+.tech-learn-actions .btn-cancel,
+.tech-learn-actions .btn-confirm-learn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.84rem;
   border: 1px solid var(--slot-border);
   border-radius: 2px;
+  color: var(--ink);
+}
+
+.tech-modal-header .btn-close,
+.btn-practice,
+.tech-learn-actions .btn-cancel {
+  background: var(--btn-bg);
+}
+
+.btn-insight,
+.btn-learn,
+.tech-learn-actions .btn-confirm-learn {
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
 }
 
 .tech-section {
-  margin: 0.5rem 0;
-  padding: 0.6rem 0.75rem;
+  margin: 0.6rem 0;
+  padding: 0.75rem;
+}
+
+.tech-tier-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+
+.tech-tier-tab {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+}
+
+.tech-tier-tab-active {
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+  border-color: rgba(201, 162, 39, 0.7);
 }
 
 .tech-section h4 {
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   color: var(--ink-muted);
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
 }
 
 .tech-empty {
@@ -64,73 +103,119 @@
   color: var(--ink-muted);
 }
 
-.tech-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
 }
 
 .tech-card {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.24);
   border-radius: 3px;
-  padding: 0.4rem 0.5rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(201, 162, 39, 0.16);
 }
 
 .tech-card.selectable {
-  border: 1px solid rgba(201, 162, 39, 0.4);
+  border-color: rgba(201, 162, 39, 0.4);
 }
 
 .tech-card-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.tech-name-row {
+  display: flex;
   align-items: center;
-  margin-bottom: 0.2rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .tech-name {
-  font-size: 0.95rem;
+  font-size: 0.96rem;
   color: var(--ink);
+}
+
+.tech-type-tag {
+  padding: 0.08rem 0.35rem;
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  color: #ddc88d;
+  font-size: 0.72rem;
+}
+
+.tech-source {
+  color: var(--ink-muted);
+  font-size: 0.74rem;
+  margin-top: 0.1rem;
 }
 
 .tech-badge {
-  display: inline-flex;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-}
-
-.tech-badge .tier {
   color: var(--gold);
+  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
-.tech-badge .grade {
-  color: var(--ink-muted);
-}
-
-.tech-desc {
+.tech-desc,
+.tech-obtain {
   font-size: 0.8rem;
   color: var(--ink-muted);
+  line-height: 1.55;
 }
 
-.tech-scroll {
+.tech-obtain {
+  margin-top: 0.22rem;
+}
+
+.tech-mastery-block {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tech-mastery-row,
+.tech-locked-footer,
+.tech-effects,
+.tech-actions-row {
   display: flex;
+}
+
+.tech-mastery-row,
+.tech-locked-footer {
+  justify-content: space-between;
   gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-}
-
-.tech-scroll .tech-card {
-  min-width: 160px;
-  max-width: 200px;
-}
-
-.btn-learn {
-  margin-top: 0.35rem;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.8rem;
-  border-radius: 2px;
-  border: 1px solid var(--slot-border);
-  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  font-size: 0.76rem;
   color: var(--ink);
+  margin-bottom: 0.16rem;
+}
+
+.tech-effects {
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.tech-effects span {
+  padding: 0.08rem 0.4rem;
+  font-size: 0.74rem;
+  color: #dbc68e;
+  border: 1px solid rgba(201, 162, 39, 0.16);
+}
+
+.tech-actions-row {
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
+.tech-lock-state {
+  color: #b58f84;
+}
+
+.tech-lock-cost {
+  color: var(--ink-muted);
 }
 
 .tech-learn-confirm {
@@ -150,21 +235,14 @@
   justify-content: flex-end;
 }
 
-.tech-learn-actions .btn-cancel {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
-  background: var(--slot-bg);
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
+@media (max-width: 920px) {
+  .tech-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.tech-learn-actions .btn-confirm-learn {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
-  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
+@media (max-width: 640px) {
+  .tech-grid {
+    grid-template-columns: 1fr;
+  }
 }
-

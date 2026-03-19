@@ -2,6 +2,7 @@
  * 兑换码弹窗
  */
 import { useState } from 'react'
+import { PILL_IDS } from '../data/items'
 import './RedeemCodeModal.css'
 
 const REDEEM_CODES = {
@@ -15,18 +16,9 @@ const REDEEM_CONTRIBUTION = {
   '3': 10000000,
 }
 
-/** 兑换码 2：凝气丹 20 个，各突破丹各 10 个 */
+/** 兑换码 2：所有丹药各 50 个 */
 const REDEEM_PILLS = {
-  '2': {
-    ningqi_dan: 20,
-    zhuji_dan: 10,
-    yuanshen_dan: 10,
-    yuanying_dan: 10,
-    huashen_dan: 10,
-    heti_dan: 10,
-    dujie_dan: 10,
-    dacheng_dan: 10,
-  },
+  '2': Object.fromEntries(PILL_IDS.map((pillId) => [pillId, 50])),
 }
 
 export default function RedeemCodeModal({ show, onClose, onRedeem, onRedeemWeapons, onRedeemPills, onRedeemContribution }) {
@@ -58,7 +50,7 @@ export default function RedeemCodeModal({ show, onClose, onRedeem, onRedeemWeapo
       }, 800)
     } else if (pillReward != null && onRedeemPills) {
       onRedeemPills(pillReward)
-      setMessage('获得丹药！')
+      setMessage('获得全部丹药！')
       setCode('')
       setTimeout(() => {
         setMessage('')

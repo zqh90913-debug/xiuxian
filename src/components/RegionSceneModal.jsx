@@ -11,11 +11,13 @@ export default function RegionSceneModal({
   regionId,
   onClose,
   logs = [],
-  pendingSect = null,
+  pendingSects = [],
   exploreRemaining = 0,
   onExplore,
+  onExploreTen,
   onJoinSect,
   onDismissSect,
+  onChallengeSect,
   onBuyExploreChance,
   pendingBandit = null,
   onBanditFight,
@@ -59,33 +61,73 @@ export default function RegionSceneModal({
     requestAnimationFrame(tick)
   }
 
-  const renderSectCard = () => {
-    if (!pendingSect) return null
-    return (
-      <div className="region-sect-card gu-panel">
-        <h4 className="region-sect-title">
-          {pendingSect.name}
-          <span className="region-sect-level">（{pendingSect.levelLabel}）</span>
-        </h4>
-        <p className="region-sect-desc">{pendingSect.desc}</p>
+  const handleExploreTenClick = () => {
+    if (!onExploreTen || exploring) return
+    setExploring(true)
+    setProgress(0)
+    const start = Date.now()
+    const duration = 2600
+    const tick = () => {
+      const elapsed = Date.now() - start
+      const p = Math.min(1, elapsed / duration)
+      setProgress(p)
+      if (p >= 1) {
+        setExploring(false)
+        setProgress(0)
+        onExploreTen(regionId)
+        return
+      }
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }
+
+  const renderSectCards = () => {
+    if (!pendingSects.length) return null
+    return pendingSects.map((sect) => (
+      <div key={sect.id} className="region-sect-card gu-panel">
+        <div className="region-sect-layout">
+          {sect.leader?.portrait ? (
+            <img src={sect.leader.portrait} alt={`${sect.leader.name}立绘`} className="region-sect-portrait" />
+          ) : (
+            <div className="region-sect-portrait region-sect-portrait-empty">立绘待添加</div>
+          )}
+          <div className="region-sect-copy">
+            <h4 className="region-sect-title">
+              {sect.name}
+              <span className="region-sect-level">（{sect.levelLabel}）</span>
+            </h4>
+            {sect.leader && (
+              <p className="region-sect-desc">宗主：{sect.leader.name} · {sect.leader.title}</p>
+            )}
+            <p className="region-sect-desc">{sect.desc}</p>
+          </div>
+        </div>
         <div className="region-sect-actions">
           <button
             type="button"
             className="btn-region"
-            onClick={onDismissSect}
+            onClick={() => onDismissSect?.(sect.id)}
           >
-            离开
+            不加入
+          </button>
+          <button
+            type="button"
+            className="btn-region"
+            onClick={() => onChallengeSect?.(sect)}
+          >
+            比试
           </button>
           <button
             type="button"
             className="btn-region primary"
-            onClick={onJoinSect}
+            onClick={() => onJoinSect?.(sect)}
           >
             加入宗门
           </button>
         </div>
       </div>
-    )
+    ))
   }
 
   const renderBanditCard = () => {
@@ -163,6 +205,14 @@ export default function RegionSceneModal({
                 <button
                   type="button"
                   className="btn-region"
+                  disabled={exploring}
+                  onClick={handleExploreTenClick}
+                >
+                  {exploring ? '连续探索中...' : '一键探索十次'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-region"
                   onClick={() => onBuyExploreChance?.(regionId)}
                 >
                   消耗 20 灵石增加一次探索机会
@@ -182,7 +232,7 @@ export default function RegionSceneModal({
             </div>
 
             {!battleState && renderBanditCard()}
-            {renderSectCard()}
+            {renderSectCards()}
 
             {battleState && (
               <div className="region-battle-panel gu-panel">
@@ -255,4 +305,3 @@ export default function RegionSceneModal({
     </div>
   )
 }
-
