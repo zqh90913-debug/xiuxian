@@ -19,26 +19,38 @@ export default function RegionSceneModal({
   onDismissSect,
   onChallengeSect,
   onBuyExploreChance,
-  pendingBandit = null,
+  pendingBandits = [],
+  pendingBeasts = [],
   onBanditFight,
   onBanditPay,
   onBanditEscape,
+  onBeastFight,
+  onDismissBeast,
   battleState = null,
   onBattleNextTurn,
 }) {
   const [exploring, setExploring] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [confirmBeastId, setConfirmBeastId] = useState(null)
 
   useEffect(() => {
     if (!show) {
       setExploring(false)
       setProgress(0)
+      setConfirmBeastId(null)
     }
   }, [show])
+
+  useEffect(() => {
+    if (battleState) {
+      setConfirmBeastId(null)
+    }
+  }, [battleState])
 
   if (!show || !regionId) return null
 
   const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
+  const confirmBeast = pendingBeasts.find((item) => item.id === confirmBeastId) ?? null
 
   const handleExploreClick = () => {
     if (!onExplore || exploring) return
@@ -113,13 +125,6 @@ export default function RegionSceneModal({
           </button>
           <button
             type="button"
-            className="btn-region"
-            onClick={() => onChallengeSect?.(sect)}
-          >
-            比试
-          </button>
-          <button
-            type="button"
             className="btn-region primary"
             onClick={() => onJoinSect?.(sect)}
           >
@@ -131,9 +136,9 @@ export default function RegionSceneModal({
   }
 
   const renderBanditCard = () => {
-    if (!pendingBandit) return null
-    return (
-      <div className="region-sect-card gu-panel">
+    if (!pendingBandits.length) return null
+    return pendingBandits.map((pendingBandit) => (
+      <div key={pendingBandit.id} className="region-sect-card gu-panel">
         <h4 className="region-sect-title">
           路遇修士拦路打劫
         </h4>
@@ -144,27 +149,63 @@ export default function RegionSceneModal({
           <button
             type="button"
             className="btn-region primary"
-            onClick={onBanditFight}
+            onClick={() => onBanditFight?.(pendingBandit)}
           >
             战斗
           </button>
           <button
             type="button"
             className="btn-region"
-            onClick={onBanditPay}
+            onClick={() => onBanditPay?.(pendingBandit)}
           >
             破财消灾（1000 灵石）
           </button>
           <button
             type="button"
             className="btn-region"
-            onClick={onBanditEscape}
+            onClick={() => onBanditEscape?.(pendingBandit)}
           >
             逃跑
           </button>
         </div>
       </div>
-    )
+    ))
+  }
+
+  const renderBeastCard = () => {
+    if (!pendingBeasts.length) return null
+    return pendingBeasts.map((pendingBeast) => {
+      const beast = pendingBeast?.beast
+      if (!beast) return null
+      return (
+      <div key={pendingBeast.id} className="region-sect-card gu-panel">
+        <h4 className="region-sect-title">路遇异兽</h4>
+        <p className="region-sect-desc">你遭遇了一头「{beast.realmName}」的{beast.name}。</p>
+        <p className="region-sect-desc">{beast.desc}</p>
+        <p className="region-sect-desc region-sect-desc-muted">主动技能：{beast.activeSkill?.name} · {beast.activeSkill?.effect}</p>
+        <p className="region-sect-desc region-sect-desc-muted">被动技能：{beast.passiveSkill?.name} · {beast.passiveSkill?.effect}</p>
+        <div className="region-sect-actions">
+          <button
+            type="button"
+            className="btn-region"
+            onClick={() => {
+              setConfirmBeastId(null)
+              onDismissBeast?.(pendingBeast)
+            }}
+          >
+            逃跑
+          </button>
+          <button
+            type="button"
+            className="btn-region primary"
+            onClick={() => setConfirmBeastId(pendingBeast.id)}
+          >
+            战斗
+          </button>
+        </div>
+      </div>
+      )
+    })
   }
 
   const regionBgUrl = `/region-${regionId}-bg.png`
@@ -232,6 +273,7 @@ export default function RegionSceneModal({
             </div>
 
             {!battleState && renderBanditCard()}
+            {!battleState && renderBeastCard()}
             {renderSectCards()}
 
             {battleState && (
@@ -256,10 +298,10 @@ export default function RegionSceneModal({
                       disabled={battleState.finished}
                       onClick={onBattleNextTurn}
                     >
-                      {battleState.finished ? '战斗结束' : (battleState.turn === 'player' ? '出手攻击' : '承受攻击')}
+                      {battleState.finished ? '战斗结束' : (battleState.turn === 'player' ? '出手攻击' : battleState.turn === 'beast' ? '异兽追击' : '承受攻击')}
                     </button>
                     <div className="battle-turn">
-                      当前回合：{battleState.turn === 'player' ? '你' : '对方'}
+                      当前回合：{battleState.turn === 'player' ? '你' : battleState.turn === 'beast' ? '异兽' : '对方'}
                     </div>
                   </div>
                   <div className="battle-side player">
@@ -302,6 +344,46 @@ export default function RegionSceneModal({
           </div>
         </div>
       </div>
+
+      {confirmBeast && !battleState && (
+        <div className="region-confirm-overlay" onClick={() => setConfirmBeastId(null)}>
+          <div className="region-confirm-modal gu-panel" onClick={(e) => e.stopPropagation()}>
+            <h4 className="region-confirm-title">确认战斗</h4>
+            <p className="region-confirm-text">
+              你确定要与这头「{confirmBeast.beast?.realmName}」的{confirmBeast.beast?.name}交战吗？
+            </p>
+            <div className="region-confirm-actions">
+              <button
+                type="button"
+                className="btn-region"
+                onClick={() => setConfirmBeastId(null)}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn-region"
+                onClick={() => {
+                  setConfirmBeastId(null)
+                  onDismissBeast?.(confirmBeast)
+                }}
+              >
+                逃跑
+              </button>
+              <button
+                type="button"
+                className="btn-region primary"
+                onClick={() => {
+                  setConfirmBeastId(null)
+                  onBeastFight?.(confirmBeast)
+                }}
+              >
+                确定战斗
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

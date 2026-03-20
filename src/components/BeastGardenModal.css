@@ -1,0 +1,228 @@
+.beast-garden-overlay {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(to bottom, rgba(16, 12, 8, 0.46), rgba(16, 12, 8, 0.8)),
+    url('/debate-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 105;
+  padding: 0.75rem;
+}
+
+.beast-garden-modal {
+  width: min(1080px, 100%);
+  max-height: calc(100vh - 1.5rem);
+  overflow-y: auto;
+  background: rgba(20, 14, 10, 0.9);
+  border: 2px solid var(--slot-border);
+  border-radius: 4px;
+  padding: 0.8rem;
+}
+
+.beast-garden-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.btn-beast-back {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  background: var(--btn-bg);
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.beast-garden-header h3 {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.3rem;
+  color: var(--gold);
+}
+
+.beast-garden-content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr);
+  gap: 0.75rem;
+}
+
+.beast-garden-panel {
+  padding: 0.8rem;
+  min-height: 520px;
+}
+
+.beast-garden-panel h4 {
+  font-size: 0.96rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.6rem;
+}
+
+.beast-active-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.beast-active-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.beast-active-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.beast-active-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.beast-skill-panel {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+.beast-skill-card {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgba(201, 162, 39, 0.18);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.beast-skill-title {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.beast-skill-name {
+  font-size: 0.9rem;
+  color: var(--gold);
+}
+
+.beast-skill-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.beast-bag-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.beast-slot {
+  min-height: 120px;
+  border: 1px dashed rgba(201, 162, 39, 0.35);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 0.86rem;
+  padding: 0.5rem;
+}
+
+.beast-bag-slot {
+  white-space: pre-line;
+  width: 100%;
+}
+
+.beast-slot.filled {
+  border-style: solid;
+  color: var(--ink);
+}
+
+.beast-slot-large {
+  min-height: 220px;
+}
+
+.beast-empty {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.beast-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.56);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 120;
+  padding: 1rem;
+}
+
+.beast-confirm-modal {
+  width: min(420px, 100%);
+  padding: 1rem 1.1rem;
+}
+
+.beast-confirm-text {
+  margin: 0 0 0.45rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.beast-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.btn-beast-confirm {
+  padding: 0.32rem 0.76rem;
+  font-size: 0.84rem;
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.btn-beast-release {
+  padding: 0.32rem 0.76rem;
+  font-size: 0.84rem;
+  background: linear-gradient(180deg, rgba(120, 40, 20, 0.95), rgba(80, 24, 10, 0.95));
+  color: var(--ink);
+  border: 1px solid rgba(120, 50, 30, 0.8);
+  border-radius: 2px;
+}
+
+@media (max-width: 780px) {
+  .beast-garden-content {
+    grid-template-columns: 1fr;
+  }
+
+  .beast-garden-panel {
+    min-height: 0;
+  }
+
+  .beast-bag-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

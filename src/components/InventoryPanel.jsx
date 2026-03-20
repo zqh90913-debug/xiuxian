@@ -3,8 +3,8 @@
  * 每种道具一格，相同道具堆叠显示数量
  * 破境丹在突破界面使用，直接使用丹（如养魂丹）点击使用，法宝点击可装备
  */
-import { useState } from 'react'
-import { inventoryToStacks, getItemById, getPillGradeColor, ITEM_TYPES, getGradeLabel } from '../data/items'
+import { useEffect, useState } from 'react'
+import { inventoryToStacks, getItemById, getItemAccentColor, ITEM_TYPES, getItemDisplayGradeLabel } from '../data/items'
 import PillPortrait from './PillPortrait'
 import EquipmentPortrait from './EquipmentPortrait'
 import EquipWeaponModal from './EquipWeaponModal'
@@ -13,8 +13,14 @@ import './InventoryPanel.css'
 
 const COLS = 5
 const ROWS = 6
-const PAGES = 20
 const SLOTS_PER_PAGE = COLS * ROWS
+const FILTER_OPTIONS = [
+  { id: 'all', label: '全部物品' },
+  { id: ITEM_TYPES.WEAPON, label: '法器' },
+  { id: ITEM_TYPES.ARMOR, label: '防具' },
+  { id: ITEM_TYPES.PILL, label: '丹药' },
+  { id: ITEM_TYPES.MATERIAL, label: '材料' },
+]
 
 export default function InventoryPanel({
   inventory = {},
@@ -23,36 +29,58 @@ export default function InventoryPanel({
   onUnequipWeapon,
   onEquipArmor,
   onUseDirectPill,
-  onSortInventory,
   cuitiUsedCount = 0,
   xueUsedCount = 0,
   shenxingUsedCount = 0,
 }) {
   const [page, setPage] = useState(0)
+  const [activeFilter, setActiveFilter] = useState('all')
   const [equipWeaponStack, setEquipWeaponStack] = useState(null)
   const [usePillStack, setUsePillStack] = useState(null)
   const [equipArmorStack, setEquipArmorStack] = useState(null)
 
   const stacks = inventoryToStacks(inventory)
-  const startIdx = page * SLOTS_PER_PAGE
-  const pageStacks = stacks.slice(startIdx, startIdx + SLOTS_PER_PAGE)
+  const filteredStacks = stacks.filter((stack) => {
+    if (activeFilter === 'all') return true
+    const item = getItemById(stack.itemId)
+    return item?.type === activeFilter
+  })
+  const totalPages = Math.max(1, Math.ceil(filteredStacks.length / SLOTS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages - 1)
+  const startIdx = currentPage * SLOTS_PER_PAGE
+  const pageStacks = filteredStacks.slice(startIdx, startIdx + SLOTS_PER_PAGE)
+
+  useEffect(() => {
+    setPage(0)
+  }, [activeFilter])
+
+  useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1))
+    }
+  }, [page, totalPages])
 
   return (
     <div className="inventory-panel gu-panel">
       <div className="inventory-header">
         <h3 className="panel-title">背包</h3>
         <div className="inventory-header-right">
-          <button
-            type="button"
-            className="btn-inv-sort"
-            onClick={() => onSortInventory && onSortInventory()}
-          >
-            一键整理
-          </button>
           <span className="page-info">
-            {page + 1} / {PAGES}
+            {currentPage + 1} / {totalPages}
           </span>
         </div>
+      </div>
+      <div className="inventory-filters">
+        {FILTER_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={`inventory-filter-btn ${activeFilter === option.id ? 'active' : ''}`}
+            onClick={() => setActiveFilter(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
       <div
         className="inventory-grid"
@@ -69,12 +97,12 @@ export default function InventoryPanel({
           const isWeapon = item?.type === ITEM_TYPES.WEAPON
           const isArmor = item?.type === ITEM_TYPES.ARMOR
           const isMaterial = item?.type === ITEM_TYPES.MATERIAL
-          const color = (isPill || isWeapon || isArmor) ? getPillGradeColor(item.grade) : (isMaterial && item.tier ? getPillGradeColor(item.tier) : undefined)
+          const color = (isPill || isWeapon || isArmor || isMaterial) ? getItemAccentColor(item) : undefined
           let pillTitle = isDirectUsePill ? '点击使用' : '突破时在突破界面使用'
           if (isPill && item?.id === 'cuiti_dan') pillTitle = `点击使用（已用 ${cuitiUsedCount}/50）`
           if (isPill && item?.id === 'longli_dan') pillTitle = `点击使用（已用 ${xueUsedCount}/50）`
           if (isPill && item?.id === 'shenxing_dan') pillTitle = `点击使用（已用 ${shenxingUsedCount}/10）`
-          const gradeLabel = item?.grade != null ? getGradeLabel(item.grade) : undefined
+          const gradeLabel = getItemDisplayGradeLabel(item)
           const baseTitle = item?.name ?? stack.itemId
           const fullTitle = gradeLabel && (isPill || isWeapon || isArmor)
             ? `${baseTitle}（${gradeLabel}）`
@@ -150,14 +178,14 @@ export default function InventoryPanel({
         <button
           className="page-btn"
           onClick={() => setPage((p) => Math.max(0, p - 1))}
-          disabled={page === 0}
+          disabled={currentPage === 0}
         >
           上一页
         </button>
         <button
           className="page-btn"
-          onClick={() => setPage((p) => Math.min(PAGES - 1, p + 1))}
-          disabled={page === PAGES - 1}
+          onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+          disabled={currentPage >= totalPages - 1}
         >
           下一页
         </button>

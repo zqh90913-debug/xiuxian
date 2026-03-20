@@ -15,23 +15,31 @@
   gap: 0.4rem;
 }
 
-.btn-inv-sort {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.8rem;
-  background: var(--btn-bg);
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.btn-inv-sort:hover {
-  background: var(--btn-hover);
-}
-
 .page-info {
   font-size: 0.8rem;
   color: var(--ink-muted);
+}
+
+.inventory-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.inventory-filter-btn {
+  padding: 0.28rem 0.62rem;
+  font-size: 0.78rem;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--ink-muted);
+  border: 1px solid var(--slot-border);
+  border-radius: 2px;
+}
+
+.inventory-filter-btn.active {
+  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
+  color: var(--ink);
+  border-color: rgba(201, 162, 39, 0.7);
 }
 
 .inventory-grid {

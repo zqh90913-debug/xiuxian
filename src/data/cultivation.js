@@ -5,7 +5,7 @@
 
 const PHASE_LABELS = ['初期', '中期', '后期', '圆满']
 const CHINESE_NUMERALS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
-const BIG_REALM_STAGE_NAMES = new Set(['练气', '筑基', '金丹', '元婴', '化神', '合体', '合灵', '合魂', '空冥', '寂灭', '问鼎'])
+const BIG_REALM_STAGE_NAMES = new Set(['练气', '筑基', '金丹', '元婴', '化神', '合体', '合灵', '合魂', '空冥', '寂灭', '问鼎', '闻道', '大乘', '渡劫', '化羽', '飞升'])
 
 export const STAGE_REALMS = [
   { groupName: '练气期', stageName: '练皮', maxLevel: 1, levelType: 'single' },
@@ -56,11 +56,11 @@ export const STAGE_REALMS = [
   { groupName: '空冥期', stageName: '空冥', maxLevel: 4, levelType: 'phase', isBigRealm: true },
   { groupName: '寂灭期', stageName: '寂灭', maxLevel: 4, levelType: 'phase', isBigRealm: true },
   { groupName: '问鼎期', stageName: '问鼎', maxLevel: 4, levelType: 'phase', isBigRealm: true },
-  { groupName: '飞升期', stageName: '闻道', maxLevel: 1, levelType: 'single', requiresOpportunity: true },
-  { groupName: '飞升期', stageName: '大乘', maxLevel: 1, levelType: 'single', requiresOpportunity: true },
-  { groupName: '飞升期', stageName: '渡劫', maxLevel: 1, levelType: 'single', requiresOpportunity: true },
-  { groupName: '飞升期', stageName: '化羽', maxLevel: 1, levelType: 'single', requiresOpportunity: true },
-  { groupName: '飞升期', stageName: '飞升', maxLevel: 1, levelType: 'single', requiresOpportunity: true },
+  { groupName: '闻道期', stageName: '闻道', maxLevel: 4, levelType: 'phase', isBigRealm: true },
+  { groupName: '大乘期', stageName: '大乘', maxLevel: 4, levelType: 'phase', isBigRealm: true },
+  { groupName: '渡劫期', stageName: '渡劫', maxLevel: 4, levelType: 'phase', isBigRealm: true },
+  { groupName: '化羽期', stageName: '化羽', maxLevel: 4, levelType: 'phase', isBigRealm: true },
+  { groupName: '飞升期', stageName: '飞升', maxLevel: 1, levelType: 'single', isBigRealm: true },
 ]
 
 export const REALMS = STAGE_REALMS.map((item) => `${item.groupName}·${item.stageName}`)
@@ -78,7 +78,11 @@ export const MAJOR_REALM_START_INDEX = {
   kongming: 45,
   jimie: 46,
   wending: 47,
-  feisheng: 48,
+  wendao: 48,
+  dacheng: 49,
+  dujie: 50,
+  huayu: 51,
+  feisheng: 52,
 }
 
 export const BASE_CULTIVATION_GAIN = 10
@@ -92,12 +96,12 @@ export const BIG_REALM_BREAKTHROUGH_MULTIPLIER = 1.62
 export const BASE_ATTACK = 10
 export const BASE_HP = 100
 export const BASE_SPEED = 5
-export const ATTACK_STEP_MULTIPLIER = 1.08
-export const ATTACK_SMALL_REALM_MULTIPLIER = 1.12
-export const ATTACK_BIG_REALM_MULTIPLIER = 1.3
-export const HP_STEP_MULTIPLIER = 1.09
-export const HP_SMALL_REALM_MULTIPLIER = 1.14
-export const HP_BIG_REALM_MULTIPLIER = 1.34
+export const ATTACK_STEP_MULTIPLIER = 1.09
+export const ATTACK_SMALL_REALM_MULTIPLIER = 1.14
+export const ATTACK_BIG_REALM_MULTIPLIER = 1.33
+export const HP_STEP_MULTIPLIER = 1.075
+export const HP_SMALL_REALM_MULTIPLIER = 1.12
+export const HP_BIG_REALM_MULTIPLIER = 1.3
 export const SPEED_STEP_MULTIPLIER = 1.03
 export const SPEED_SMALL_REALM_MULTIPLIER = 1.05
 export const SPEED_BIG_REALM_MULTIPLIER = 1.12
@@ -157,7 +161,6 @@ export function getNextRealmLayer(realmIndex, layer, options = {}) {
   if (layer < stage.maxLevel) return { realmIndex, layer: layer + 1 }
   const next = STAGE_REALMS[realmIndex + 1]
   if (!next) return null
-  if (next.requiresOpportunity && !options.feishengUnlocked) return null
   return { realmIndex: realmIndex + 1, layer: 1 }
 }
 
@@ -260,7 +263,7 @@ export function getRealmDisplayName(realmIndex, layer) {
 }
 
 export function isFeishengStage(realmIndex) {
-  return Boolean(STAGE_REALMS[realmIndex]?.requiresOpportunity)
+  return realmIndex >= MAJOR_REALM_START_INDEX.wendao
 }
 
 export function getBaseAttack(realmIndex, layer) {

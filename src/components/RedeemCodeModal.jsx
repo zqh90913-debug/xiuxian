@@ -21,7 +21,16 @@ const REDEEM_PILLS = {
   '2': Object.fromEntries(PILL_IDS.map((pillId) => [pillId, 50])),
 }
 
-export default function RedeemCodeModal({ show, onClose, onRedeem, onRedeemWeapons, onRedeemPills, onRedeemContribution }) {
+/** 兑换码 5：悟道茶 / 不死蟠桃 / 世界树枝丫各 10 个 */
+const REDEEM_ITEMS = {
+  '5': {
+    wudao_tea: 10,
+    busi_pantao: 10,
+    world_tree_branch: 10,
+  },
+}
+
+export default function RedeemCodeModal({ show, onClose, onRedeem, onRedeemWeapons, onRedeemPills, onRedeemContribution, onRedeemItems }) {
   const [code, setCode] = useState('')
   const [message, setMessage] = useState('')
 
@@ -32,6 +41,7 @@ export default function RedeemCodeModal({ show, onClose, onRedeem, onRedeemWeapo
     const weaponCount = REDEEM_WEAPONS[trimCode]
     const pillReward = REDEEM_PILLS[trimCode]
     const contributionReward = REDEEM_CONTRIBUTION[trimCode]
+    const itemReward = REDEEM_ITEMS[trimCode]
     if (reward != null) {
       onRedeem(reward)
       setMessage('兑换成功！')
@@ -51,6 +61,14 @@ export default function RedeemCodeModal({ show, onClose, onRedeem, onRedeemWeapo
     } else if (pillReward != null && onRedeemPills) {
       onRedeemPills(pillReward)
       setMessage('获得全部丹药！')
+      setCode('')
+      setTimeout(() => {
+        setMessage('')
+        onClose()
+      }, 800)
+    } else if (itemReward != null && onRedeemItems) {
+      onRedeemItems(itemReward)
+      setMessage('获得机缘灵物！')
       setCode('')
       setTimeout(() => {
         setMessage('')

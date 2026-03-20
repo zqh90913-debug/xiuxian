@@ -7,10 +7,11 @@ import {
   getItemById,
   getItemSellPrice,
   getItemBuyPrice,
-  getPillGradeColor,
   ITEM_TYPES,
-  getGradeLabel,
+  getItemAccentColor,
+  getItemDisplayGradeLabel,
 } from '../data/items'
+import { getTechniqueById, getTechniqueBuyPrice } from '../data/techniques'
 import PillPortrait from './PillPortrait'
 import EquipmentPortrait from './EquipmentPortrait'
 import FurnacePortrait from './FurnacePortrait'
@@ -31,6 +32,7 @@ export default function TreasurePavilionModal({
   shopItems = [],
   ownedRecipes = [],
   learnedRecipes = [],
+  availableTechs = [],
   onSell,
   onBuy,
   onForceRefresh,
@@ -50,19 +52,27 @@ export default function TreasurePavilionModal({
 
   // 先按类型分组再串起来，保证同类物品连在一起，然后顺序填满 12 个格子
   const validShopItems = (shopItems ?? [])
-    .map((id) => ({ id, item: getItemById(id) }))
+    .map((id) => {
+      const item = getItemById(id)
+      if (item) return { id, item }
+      const tech = getTechniqueById(id)
+      return tech ? { id, item: { ...tech, type: 'technique' } } : null
+    })
+    .filter(Boolean)
     .filter(({ item }) => !!item)
 
   const equips = validShopItems.filter(({ item }) => item.type === ITEM_TYPES.WEAPON || item.type === ITEM_TYPES.ARMOR)
   const furnacesAndRecipes = validShopItems.filter(({ item }) => item.type === ITEM_TYPES.FURNACE || item.type === ITEM_TYPES.RECIPE)
+  const techniques = validShopItems.filter(({ item }) => item.type === 'technique')
   const others = validShopItems.filter(({ item }) =>
     item.type !== ITEM_TYPES.WEAPON
     && item.type !== ITEM_TYPES.ARMOR
     && item.type !== ITEM_TYPES.FURNACE
-    && item.type !== ITEM_TYPES.RECIPE,
+    && item.type !== ITEM_TYPES.RECIPE
+    && item.type !== 'technique'
   )
 
-  const sortedShopIds = [...equips, ...furnacesAndRecipes, ...others].map(({ id }) => id)
+  const sortedShopIds = [...equips, ...furnacesAndRecipes, ...techniques, ...others].map(({ id }) => id)
 
   const handleDragStart = (e, stack) => {
     if (!stack) return
@@ -92,7 +102,7 @@ export default function TreasurePavilionModal({
   }
 
   const handleSelectBuy = (itemId) => {
-    const price = getItemBuyPrice(itemId)
+    const price = getItemBuyPrice(itemId) || getTechniqueBuyPrice(itemId)
     if ((spiritStones ?? 0) >= price) setItemToBuy({ itemId, price })
   }
 
@@ -130,39 +140,33 @@ export default function TreasurePavilionModal({
                       if (!itemId) {
                         return <div key={`shop-empty-${i}`} className="inv-slot shop-slot empty" />
                       }
-                      const item = getItemById(itemId)
+                      const item = getItemById(itemId) ?? (() => {
+                        const tech = getTechniqueById(itemId)
+                        return tech ? { ...tech, type: 'technique' } : null
+                      })()
                       if (!item) return <div key={itemId} className="inv-slot shop-slot empty" />
 
-                      const price = getItemBuyPrice(itemId)
+                      const price = getItemBuyPrice(itemId) || getTechniqueBuyPrice(itemId)
                       const canBuy = (spiritStones ?? 0) >= price
                       const selected = itemToBuy?.itemId === itemId
                       const isPill = item.type === ITEM_TYPES.PILL
                       const isMaterial = item.type === ITEM_TYPES.MATERIAL
                       const isFurnace = item.type === ITEM_TYPES.FURNACE
                       const isRecipe = item.type === ITEM_TYPES.RECIPE
+                      const isTechnique = item.type === 'technique'
                       const isEquip = item.type === ITEM_TYPES.WEAPON || item.type === ITEM_TYPES.ARMOR
 
                       const borderColor =
-                        item.grade != null
-                          ? getPillGradeColor(item.grade)
-                          : item.tier != null
-                            ? getPillGradeColor(item.tier)
-                            : item.pillId
-                              ? getPillGradeColor(getItemById(item.pillId)?.grade)
-                              : undefined
+                        getItemAccentColor(item)
 
-                      const gradeLabel =
-                        item.grade != null
-                          ? getGradeLabel(item.grade)
-                          : item.pillId && getItemById(item.pillId)?.grade != null
-                            ? getGradeLabel(getItemById(item.pillId).grade)
-                            : undefined
+                      const gradeLabel = getItemDisplayGradeLabel(item)
 
                       const fullName = gradeLabel ? `${item.name}（${gradeLabel}）` : item.name
                       const recipeOwnedOrLearned =
                         isRecipe
                         && (ownedRecipes.includes(item.id)
                           || learnedRecipes.includes(item.pillId))
+                      const techniqueAlreadyUnlocked = isTechnique && availableTechs.includes(item.id)
 
                       return (
                         <div
@@ -182,13 +186,13 @@ export default function TreasurePavilionModal({
                           )}
                           {!isPill && !isFurnace && !isEquip && (
                             <span className="shop-item-type-tag">
-                              {isMaterial ? `材料×${MATERIAL_SHOP_COUNT}` : '其他'}
+                              {isMaterial ? `材料×${MATERIAL_SHOP_COUNT}` : isTechnique ? '功法' : '其他'}
                             </span>
                           )}
                           <span className="item-preview shop-item-name" title={fullName}>
                             {item.name}
                           </span>
-                          {recipeOwnedOrLearned && (
+                          {(recipeOwnedOrLearned || techniqueAlreadyUnlocked) && (
                             <span className="shop-item-owned-tag">已获得</span>
                           )}
                           <span className="shop-item-price">{price.toLocaleString()}</span>
@@ -203,7 +207,7 @@ export default function TreasurePavilionModal({
               {itemToBuy && (
                 <div className="buy-confirm-row">
                   <span className="buy-preview">
-                    {getItemById(itemToBuy.itemId)?.name} · {itemToBuy.price.toLocaleString()} 灵石
+                    {(getItemById(itemToBuy.itemId)?.name ?? getTechniqueById(itemToBuy.itemId)?.name ?? itemToBuy.itemId)} · {itemToBuy.price.toLocaleString()} 灵石
                   </span>
                   <button type="button" className="btn-confirm-buy" onClick={handleConfirmBuy}>
                     确认购买
@@ -238,8 +242,8 @@ export default function TreasurePavilionModal({
                         const it = getItemById(itemToSell.itemId)
                         if (!it) return itemToSell.itemId
                         const baseName = it.name ?? itemToSell.itemId
-                        const showGrade = (it.type === ITEM_TYPES.PILL || it.type === ITEM_TYPES.WEAPON || it.type === ITEM_TYPES.ARMOR) && it.grade != null
-                        return showGrade ? `${baseName}（${getGradeLabel(it.grade)}）` : baseName
+                        const displayGrade = getItemDisplayGradeLabel(it)
+                        return displayGrade ? `${baseName}（${displayGrade}）` : baseName
                       })()}
                     </span>
                     <div className="sell-count-row">
@@ -283,7 +287,7 @@ export default function TreasurePavilionModal({
                 <div
                   key={`${stack.itemId}-${i}`}
                   className={`inv-slot treasure-inv-slot has-item ${isPill ? 'pill' : ''}`}
-                  style={isPill ? { borderColor: getPillGradeColor(item.grade) } : undefined}
+                  style={item ? { borderColor: getItemAccentColor(item) } : undefined}
                   draggable
                   onDragStart={(e) => handleDragStart(e, stack)}
                 >

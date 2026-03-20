@@ -4,6 +4,7 @@ import {
   getCultivationGain,
   getBreakthroughRequired,
   getRealmDisplayName,
+  getRealmStageName,
   getAttack,
   getHp,
   getSpeed,
@@ -21,13 +22,14 @@ import InventoryPanel from './components/InventoryPanel'
 import TreasurePavilionModal from './components/TreasurePavilionModal'
 import TechniquePavilionModal from './components/TechniquePavilionModal'
 import AlchemyRoomModal from './components/AlchemyRoomModal'
+import BeastGardenModal from './components/BeastGardenModal'
 import WorldMapModal from './components/WorldMapModal'
 import DebatePavilionModal from './components/DebatePavilionModal'
 import BingyanModal from './components/BingyanModal'
 import RegionSceneModal from './components/RegionSceneModal'
 import SectModal from './components/SectModal'
 import { REGIONS, REGION_NAME_MAP, getRandomSectForRegion, SECT_RANKS } from './data/sects'
-import { INITIAL_AVAILABLE_TECHNIQUES, getTechniqueById, getTechniqueEffectiveBonuses, getTechniqueMasteryExp } from './data/techniques'
+import { INITIAL_AVAILABLE_TECHNIQUES, SHOP_TECHNIQUE_IDS, TECHNIQUE_MAX_MASTERY_EXP, getTechniqueById, getTechniqueEffectiveBonuses, getTechniqueMasteryExp, getTechniqueBuyPrice } from './data/techniques'
 import {
   INITIAL_OWNED_RECIPES,
   INITIAL_OWNED_FURNACES,
@@ -40,9 +42,10 @@ import {
 import RedeemCodeModal from './components/RedeemCodeModal'
 import SaveSlotModal from './SaveSlotModal'
 import LoadSlotModal from './LoadSlotModal'
-import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, removeFromInventory, SHOP_ITEM_IDS, WEAPON_IDS, ARMOR_IDS, getWeaponAttackBonus, getPillCultivationGain, getArmorHpBonus, ITEM_TYPES, MATERIAL_SHOP_COUNT, MATERIAL_IDS } from './data/items'
+import { getItemSellPrice, addToInventory, getItemById, normalizeInventory, removeFromInventory, SHOP_ITEM_IDS, WEAPON_IDS, ARMOR_IDS, getWeaponAttackBonus, getPillCultivationGain, getArmorHpBonus, ITEM_TYPES, MATERIAL_SHOP_COUNT, MATERIAL_IDS, SPECIAL_BREAKTHROUGH_MATERIAL_IDS } from './data/items'
 import CharacterCreationModal from './components/CharacterCreationModal'
 import { getCharacterBonuses, getCharacterSelection, getDefaultCharacterProfile, normalizeCharacterProfile } from './data/characterCreation'
+import { createEncounterBeast, getBeastBattleBonuses, tameBeast } from './data/beasts'
 import './App.css'
 
 const CULTIVATION_DURATION_MS = 10000
@@ -56,10 +59,15 @@ function getSaveSlotKey(index) {
 const SHOP_REFRESH_MS = 12 * 60 * 60 * 1000
 const SHOP_SLOTS = 12
 const SHOP_REFRESH_COST = 20
+const SPECIAL_EXPLORE_FIND_CHANCE = 1 / 500
+const WENDAO_REQUIRED_ITEM_ID = 'wudao_tea'
+const FLYING_ASCENSION_DROP_REALM = { realmIndex: 32, layer: 1 }
+const MAX_BEAST_STORAGE = 24
 
 function pickRandomShopItems(count) {
-  const shuffled = [...SHOP_ITEM_IDS].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, Math.min(count, SHOP_ITEM_IDS.length))
+  const pool = [...SHOP_ITEM_IDS, ...SHOP_TECHNIQUE_IDS]
+  const shuffled = [...pool].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, Math.min(count, pool.length))
 }
 
 function pickRandomWeapons(count) {
@@ -85,6 +93,11 @@ function normalizeEquipmentArmors(a) {
   })
 }
 
+function normalizeBeastArray(list, limit = MAX_BEAST_STORAGE) {
+  if (!Array.isArray(list)) return []
+  return list.filter((item) => item && typeof item === 'object' && item.id).slice(0, limit)
+}
+
 function normalizeSaveData(data) {
   if (!data || data.realmIndex == null || data.layer == null || data.cultivation == null) return null
   const safeLayer = Math.max(1, Math.min(data.layer, getRealmLayerCount(data.realmIndex)))
@@ -100,6 +113,7 @@ function normalizeSaveData(data) {
     bigRealmBreakCount: data.bigRealmBreakCount ?? 0,
     spiritStones: data.spiritStones ?? 0,
     pillSuccessBonus: data.pillSuccessBonus ?? {},
+    specialBreakthroughBonus: data.specialBreakthroughBonus ?? {},
     shopLastRefreshTime: data.shopLastRefreshTime ?? 0,
     shopItems: Array.isArray(data.shopItems) ? data.shopItems : pickRandomShopItems(SHOP_SLOTS),
     learnedTechs: Array.isArray(data.learnedTechs) ? data.learnedTechs : [],
@@ -109,8 +123,11 @@ function normalizeSaveData(data) {
     learnedRecipes: Array.isArray(data.learnedRecipes) ? data.learnedRecipes : [],
     ownedFurnaces: Array.isArray(data.ownedFurnaces) ? data.ownedFurnaces : INITIAL_OWNED_FURNACES,
     equippedFurnaceId: data.equippedFurnaceId ?? null,
+    activeBeasts: normalizeBeastArray(data.activeBeasts, 1),
+    beastInventory: normalizeBeastArray(data.beastInventory, MAX_BEAST_STORAGE),
     joinedSect: data.joinedSect ?? null,
     sectContribution: data.sectContribution ?? 0,
+    debatePoints: data.debatePoints ?? 0,
     sectRankIndex: data.sectRankIndex ?? 0,
     cuitiUsedCount: data.cuitiUsedCount ?? 0,
     xueUsedCount: data.xueUsedCount ?? 0,
@@ -130,6 +147,7 @@ function getDefaultState(characterProfile = null) {
     bigRealmBreakCount: 0,
     spiritStones: 0,
     pillSuccessBonus: {},
+    specialBreakthroughBonus: {},
     shopLastRefreshTime: Date.now(),
     shopItems: pickRandomShopItems(SHOP_SLOTS),
     learnedTechs: [],
@@ -139,8 +157,11 @@ function getDefaultState(characterProfile = null) {
     learnedRecipes: [],
     ownedFurnaces: INITIAL_OWNED_FURNACES,
     equippedFurnaceId: null,
+    activeBeasts: [],
+    beastInventory: [],
     joinedSect: null,
     sectContribution: 0,
+    debatePoints: 0,
     sectRankIndex: 0,
     cuitiUsedCount: 0,
     xueUsedCount: 0,
@@ -173,6 +194,7 @@ function saveToSlot(state, index) {
       bigRealmBreakCount: state.bigRealmBreakCount ?? 0,
       spiritStones: state.spiritStones ?? 0,
       pillSuccessBonus: state.pillSuccessBonus ?? {},
+      specialBreakthroughBonus: state.specialBreakthroughBonus ?? {},
       shopLastRefreshTime: state.shopLastRefreshTime ?? 0,
       shopItems: state.shopItems ?? [],
       learnedTechs: state.learnedTechs ?? [],
@@ -182,8 +204,11 @@ function saveToSlot(state, index) {
       learnedRecipes: state.learnedRecipes ?? [],
       ownedFurnaces: state.ownedFurnaces ?? INITIAL_OWNED_FURNACES,
       equippedFurnaceId: state.equippedFurnaceId ?? null,
+      activeBeasts: normalizeBeastArray(state.activeBeasts, 1),
+      beastInventory: normalizeBeastArray(state.beastInventory, MAX_BEAST_STORAGE),
       joinedSect: state.joinedSect ?? null,
       sectContribution: state.sectContribution ?? 0,
+      debatePoints: state.debatePoints ?? 0,
       sectRankIndex: state.sectRankIndex ?? 0,
       cuitiUsedCount: state.cuitiUsedCount ?? 0,
       xueUsedCount: state.xueUsedCount ?? 0,
@@ -279,6 +304,7 @@ function App() {
   const [showRedeemCode, setShowRedeemCode] = useState(false)
   const [showTechniquePavilion, setShowTechniquePavilion] = useState(false)
   const [showAlchemyRoom, setShowAlchemyRoom] = useState(false)
+  const [showBeastGarden, setShowBeastGarden] = useState(false)
   const [showWorldMap, setShowWorldMap] = useState(false)
   const [showDebatePavilion, setShowDebatePavilion] = useState(false)
   const [showBingyan, setShowBingyan] = useState(false)
@@ -289,7 +315,8 @@ function App() {
   const [currentRegionId, setCurrentRegionId] = useState(null)
   const [regionLogs, setRegionLogs] = useState({})
   const [pendingSects, setPendingSects] = useState([])
-  const [pendingBandit, setPendingBandit] = useState(null)
+  const [pendingBandits, setPendingBandits] = useState([])
+  const [pendingBeasts, setPendingBeasts] = useState([])
   const banditPayGuardRef = useRef(false)
   const [breakthroughFailed, setBreakthroughFailed] = useState(false)
   const [lastGain, setLastGain] = useState(0)
@@ -318,9 +345,7 @@ function App() {
   }, [lastGain])
 
   useEffect(() => {
-    if (!battleReward) return
-    const t = setTimeout(() => setBattleReward(null), 3000)
-    return () => clearTimeout(t)
+    if (!battleReward) return undefined
   }, [battleReward])
 
   useEffect(() => {
@@ -355,6 +380,7 @@ function App() {
     bigRealmBreakCount,
     spiritStones,
     pillSuccessBonus,
+    specialBreakthroughBonus,
     shopLastRefreshTime,
     shopItems,
     learnedTechs = [],
@@ -364,9 +390,12 @@ function App() {
     learnedRecipes = [],
     ownedFurnaces = INITIAL_OWNED_FURNACES,
     equippedFurnaceId = null,
+    activeBeasts = [],
+    beastInventory = [],
     lastCraftResult = null,
     joinedSect = null,
     sectContribution = 0,
+    debatePoints = 0,
     sectRankIndex = 0,
     cuitiUsedCount = 0,
     xueUsedCount = 0,
@@ -386,13 +415,34 @@ function App() {
       }
   const selection = getCharacterSelection(characterProfile ?? getDefaultCharacterProfile())
   const nextStage = getNextRealmLayer(realmIndex, layer, { feishengUnlocked })
-  const breakthroughLockedByOpportunity = !nextStage && isFeishengStage(realmIndex + 1) && !feishengUnlocked
   const isMaxRealm = !nextStage
+  const nextRealmStageName = nextStage ? getRealmStageName(nextStage.realmIndex) : null
+  const isUpperRealmBreak = Boolean(nextRealmStageName && ['闻道', '大乘', '渡劫', '化羽', '飞升'].includes(nextRealmStageName))
+  const isAscensionBreak = nextRealmStageName === '飞升'
+  const currentSpecialBreakBonus = nextStage && specialBreakthroughBonus?.[nextStage.realmIndex]
+    ? specialBreakthroughBonus[nextStage.realmIndex]
+    : null
+  const specialAidBonus = currentSpecialBreakBonus?.bonus ?? 0
+  const requiresWudaoTeaToBreak = realmIndex === 47 && layer === 4 && nextRealmStageName === '闻道'
+  const hasWudaoTeaRequirementMet = !requiresWudaoTeaToBreak || Boolean(currentSpecialBreakBonus?.itemId === WENDAO_REQUIRED_ITEM_ID)
 
   const required = isMaxRealm
     ? Infinity
     : getBreakthroughRequired(nextStage.realmIndex, nextStage.layer)
-  const canBreakthrough = cultivation >= required && !isMaxRealm
+  const isBigRealmBreak = isMajorRealmBreak(realmIndex, layer, { feishengUnlocked })
+  const nextRealmIndex = nextStage?.realmIndex ?? realmIndex
+  const pillBonus = pillSuccessBonus?.[nextRealmIndex] ?? 0
+  const canOpenBreakthrough = cultivation >= required && !isMaxRealm
+  const canBreakthrough = canOpenBreakthrough && hasWudaoTeaRequirementMet
+  const breakthroughAidOptions = isBigRealmBreak
+    ? isAscensionBreak
+      ? []
+      : nextRealmStageName === '闻道'
+        ? [WENDAO_REQUIRED_ITEM_ID]
+        : isUpperRealmBreak
+          ? SPECIAL_BREAKTHROUGH_MATERIAL_IDS
+          : []
+    : []
 
   const learnedTechniqueBonuses = (learnedTechs ?? [])
     .map((id) => {
@@ -407,17 +457,26 @@ function App() {
       speedBonus: sum.speedBonus + (bonus.speedBonus ?? 0),
     }), { cultivationBonus: 0, attackBonus: 0, hpBonus: 0, speedBonus: 0 })
 
+  const activeBeast = activeBeasts[0] ?? null
+  const activeBeastBonuses = getBeastBattleBonuses(activeBeast)
+
   const baseCycleGain = getCultivationGain(realmIndex, layer) + learnedTechniqueBonuses.cultivationBonus + creationBonuses.cultivationFlatBonus
   const gainPerCycle = Math.max(1, Math.round(baseCycleGain * creationBonuses.cultivationRateMultiplier))
   const equipmentAttackBonus = (equipment?.weapons ?? [])
     .filter(Boolean)
     .reduce((sum, s) => sum + getWeaponAttackBonus(s.itemId), 0)
-  const attack = getAttack(realmIndex, layer, equipmentAttackBonus + xueUsedCount * 5 + creationBonuses.attackBonus + learnedTechniqueBonuses.attackBonus)
+  const playerSpecialKillChance = (equipment?.weapons ?? [])
+    .filter(Boolean)
+    .reduce((maxChance, slot) => {
+      const weapon = getItemById(slot.itemId)
+      return Math.max(maxChance, weapon?.specialKillChance ?? 0)
+    }, 0)
+  const attack = getAttack(realmIndex, layer, equipmentAttackBonus + xueUsedCount * 5 + creationBonuses.attackBonus + learnedTechniqueBonuses.attackBonus + activeBeastBonuses.attackBonus)
   const armorHpBonus = (equipment?.armors ?? [])
     .filter(Boolean)
     .reduce((sum, s) => sum + (getArmorHpBonus ? getArmorHpBonus(s.itemId) : 0), 0)
-  const hp = getHp(realmIndex, layer) + armorHpBonus + cuitiUsedCount * 10 + creationBonuses.hpBonus + learnedTechniqueBonuses.hpBonus
-  const speed = getSpeed(realmIndex, layer) + shenxingUsedCount * 1 + creationBonuses.speedBonus + learnedTechniqueBonuses.speedBonus
+  const hp = getHp(realmIndex, layer) + armorHpBonus + cuitiUsedCount * 10 + creationBonuses.hpBonus + learnedTechniqueBonuses.hpBonus + activeBeastBonuses.hpBonus
+  const speed = getSpeed(realmIndex, layer) + shenxingUsedCount * 1 + creationBonuses.speedBonus + learnedTechniqueBonuses.speedBonus + activeBeastBonuses.speedBonus
 
   useEffect(() => {
     if (!showTreasurePavilion) return
@@ -475,19 +534,67 @@ function App() {
     })
   }, [])
 
-  const isBigRealmBreak = isMajorRealmBreak(realmIndex, layer, { feishengUnlocked })
-  const nextRealmIndex = nextStage?.realmIndex ?? realmIndex
-  const pillBonus = pillSuccessBonus?.[nextRealmIndex] ?? 0
-  // 大境界突破基础成功率：初始约 60%，多次失败后逐步降低到 10%
-  const baseBigRealmRate = Math.max(10, 60 - (bigRealmBreakCount ?? 0) * 10)
-  const bigRealmSuccessRate = Math.min(95, baseBigRealmRate + pillBonus)
+  const pushPendingBandit = useCallback((bandit) => {
+    if (!bandit?.id) return
+    setPendingBandits((prev) => {
+      if (prev.some((item) => item.id === bandit.id)) return prev
+      return [...prev, bandit]
+    })
+  }, [])
+
+  const pushPendingBeast = useCallback((entry) => {
+    if (!entry?.id) return
+    setPendingBeasts((prev) => {
+      if (prev.some((item) => item.id === entry.id)) return prev
+      return [...prev, entry]
+    })
+  }, [])
+  // 大境界突破基础成功率：初始约 60%，多次失败后逐步降低到 10%。
+  // 化羽圆满冲击飞升固定 50%，且不可由任何丹药或机缘物提升。
+  const baseBigRealmRate = isAscensionBreak
+    ? 50
+    : Math.max(10, 60 - (bigRealmBreakCount ?? 0) * 10)
+  const bigRealmSuccessRate = isAscensionBreak
+    ? 50
+    : Math.min(95, baseBigRealmRate + pillBonus + specialAidBonus)
 
   const doBreakthrough = useCallback(() => {
     if (!canBreakthrough) return
+    const clearAttemptBonuses = (s) => {
+      const nextPillBonus = { ...(s.pillSuccessBonus ?? {}) }
+      const nextSpecialBonus = { ...(s.specialBreakthroughBonus ?? {}) }
+      if (nextRealmIndex != null) {
+        delete nextPillBonus[nextRealmIndex]
+        delete nextSpecialBonus[nextRealmIndex]
+      }
+      return {
+        pillSuccessBonus: nextPillBonus,
+        specialBreakthroughBonus: nextSpecialBonus,
+      }
+    }
+
     if (isBigRealmBreak) {
       const roll = Math.random() * 100
       if (roll >= bigRealmSuccessRate) {
-        setState((s) => ({ ...s, cultivation: 0, bigRealmBreakCount: (s.bigRealmBreakCount ?? 0) + 1 }))
+        setState((s) => {
+          const cleared = clearAttemptBonuses(s)
+          if (isAscensionBreak && roll >= 95) {
+            return {
+              ...s,
+              ...cleared,
+              realmIndex: FLYING_ASCENSION_DROP_REALM.realmIndex,
+              layer: FLYING_ASCENSION_DROP_REALM.layer,
+              cultivation: 0,
+              bigRealmBreakCount: (s.bigRealmBreakCount ?? 0) + 1,
+            }
+          }
+          return {
+            ...s,
+            ...cleared,
+            cultivation: 0,
+            bigRealmBreakCount: (s.bigRealmBreakCount ?? 0) + 1,
+          }
+        })
         setBreakthroughFailed(true)
         return
       }
@@ -497,13 +604,14 @@ function App() {
     if (!target) return
     setState((s) => ({
       ...s,
+      ...clearAttemptBonuses(s),
       realmIndex: target.realmIndex,
       layer: target.layer,
       cultivation: s.cultivation - required,
       bigRealmBreakCount: isBigRealmBreak ? 0 : s.bigRealmBreakCount,
     }))
     setShowBreakthrough(false)
-  }, [canBreakthrough, realmIndex, layer, required, isBigRealmBreak, bigRealmSuccessRate])
+  }, [canBreakthrough, realmIndex, layer, required, isBigRealmBreak, bigRealmSuccessRate, isAscensionBreak, nextRealmIndex])
 
   const handleSellItem = useCallback((itemId, count = 1) => {
     setState((s) => {
@@ -685,20 +793,41 @@ function App() {
   }, [])
 
   const handleUsePill = useCallback((itemId) => {
-    const pill = getItemById(itemId)
-    if (!pill || pill.type !== 'pill') return
+    const item = getItemById(itemId)
+    if (!item || nextRealmIndex == null) return
     setState((s) => {
       const inv = s.inventory ?? {}
       const cur = inv[itemId] ?? 0
       if (cur < 1) return s
-      const bonus = s.pillSuccessBonus ?? {}
-      const newBonus = { ...bonus, [pill.realmIndex]: Math.min(35, (bonus[pill.realmIndex] ?? 0) + 5) }
-      const newInv = { ...inv }
-      if (cur <= 1) delete newInv[itemId]
-      else newInv[itemId] = cur - 1
-      return { ...s, inventory: newInv, pillSuccessBonus: newBonus }
+
+      if (item.type === 'pill') {
+        const bonus = s.pillSuccessBonus ?? {}
+        const newBonus = { ...bonus, [item.realmIndex]: Math.min(35, (bonus[item.realmIndex] ?? 0) + 5) }
+        const newInv = removeFromInventory(inv, itemId, 1)
+        return { ...s, inventory: newInv, pillSuccessBonus: newBonus }
+      }
+
+      if (SPECIAL_BREAKTHROUGH_MATERIAL_IDS.includes(itemId)) {
+        if (isAscensionBreak) return s
+        if (nextRealmStageName === '闻道' && itemId !== WENDAO_REQUIRED_ITEM_ID) return s
+        const used = s.specialBreakthroughBonus ?? {}
+        if (used[nextRealmIndex]) return s
+        return {
+          ...s,
+          inventory: removeFromInventory(inv, itemId, 1),
+          specialBreakthroughBonus: {
+            ...used,
+            [nextRealmIndex]: {
+              itemId,
+              bonus: 5,
+            },
+          },
+        }
+      }
+
+      return s
     })
-  }, [])
+  }, [isAscensionBreak, nextRealmIndex, nextRealmStageName])
 
   const handleRedeem = useCallback((amount) => {
     setState((s) => ({
@@ -728,6 +857,16 @@ function App() {
     })
   }, [])
 
+  const handleRedeemItems = useCallback((itemCounts) => {
+    setState((s) => {
+      let inv = s.inventory ?? {}
+      for (const [itemId, count] of Object.entries(itemCounts)) {
+        if (count > 0) inv = addToInventory(inv, itemId, count)
+      }
+      return { ...s, inventory: inv }
+    })
+  }, [])
+
   const handleRedeemContribution = useCallback((amount) => {
     setState((s) => ({
       ...s,
@@ -735,12 +874,31 @@ function App() {
     }))
   }, [])
 
+  const handleGainDebatePoints = useCallback((amount) => {
+    if (!amount || amount <= 0) return
+    setState((s) => ({
+      ...s,
+      debatePoints: (s.debatePoints ?? 0) + amount,
+    }))
+  }, [])
+
+  const handleRedeemDebateShop = useCallback((itemId, cost, count) => {
+    setState((s) => {
+      const currentPoints = s.debatePoints ?? 0
+      if (currentPoints < cost || count <= 0) return s
+      return {
+        ...s,
+        debatePoints: currentPoints - cost,
+        inventory: addToInventory(s.inventory ?? {}, itemId, count),
+      }
+    })
+  }, [])
+
   const handleEnterRegion = useCallback((regionId) => {
     if (!regionId) return
     setCurrentRegionId(regionId)
     setShowWorldMap(false)
     setShowRegionScene(true)
-    setPendingBandit(null)
   }, [])
 
   const pushDiscoveredSect = useCallback((sect, regionId, mode = 'interactive') => {
@@ -774,6 +932,18 @@ function App() {
 
   const processExploreEvent = useCallback((regionId, { interactive = true } = {}) => {
     const regionName = REGION_NAME_MAP[regionId] ?? '未知地域'
+    for (const specialId of SPECIAL_BREAKTHROUGH_MATERIAL_IDS) {
+      if (Math.random() < SPECIAL_EXPLORE_FIND_CHANCE) {
+        const item = getItemById(specialId)
+        const name = item?.name ?? specialId
+        setState((s) => ({
+          ...s,
+          inventory: addToInventory(s.inventory ?? {}, specialId, 1),
+        }))
+        appendRegionLog(regionId, `你在${regionName}深处撞见一缕天地奇机，最终得到 ${name} ×1，并将其收入背包。`)
+        return { stopBatch: false }
+      }
+    }
     const roll = Math.random()
     if (roll < 0.35) {
       const delta = 1 + Math.floor(Math.random() * 100)
@@ -782,7 +952,7 @@ function App() {
         spiritStones: (s.spiritStones ?? 0) + delta,
       }))
       appendRegionLog(regionId, `在${regionName}探索时，你意外拾取了 ${delta} 枚灵石。`)
-      return
+      return { stopBatch: false }
     }
     if (roll < 0.7 && MATERIAL_IDS.length > 0) {
       const mid = MATERIAL_IDS[Math.floor(Math.random() * MATERIAL_IDS.length)]
@@ -794,9 +964,25 @@ function App() {
         inventory: addToInventory(s.inventory ?? {}, mid, count),
       }))
       appendRegionLog(regionId, `在${regionName}密林中，你找到 ${name} ×${count}。`)
-      return
+      return { stopBatch: false }
     }
-    if (roll < 0.88) {
+    if (roll < 0.8) {
+      const beast = createEncounterBeast(realmIndex, layer)
+      const encounter = {
+        id: `encounter_beast_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        regionId,
+        beast,
+      }
+      pushPendingBeast(encounter)
+      appendRegionLog(
+        regionId,
+        interactive
+          ? `你在${regionName}深处撞见一头「${beast.realmName}」的${beast.name}，对方凶性未散，显然免不了一战。`
+          : `你在连续探索中发现一头「${beast.realmName}」的${beast.name}，已将其记入下方待处理事件。`,
+      )
+      return { stopBatch: !interactive }
+    }
+    if (roll < 0.9) {
       const offsets = [0, -1, 1, -2, 2, -3, 3]
       const weights = [0.4, 0.2, 0.2, 0.08, 0.08, 0.02, 0.02]
       const r = Math.random()
@@ -812,44 +998,28 @@ function App() {
       const candidate = realmIndex + pickedOffset
       const enemyRealmIndex = Math.min(REALMS.length - 1, Math.max(0, candidate))
       const enemyRealmName = REALMS[enemyRealmIndex]
-      if (!interactive) {
-        let successChance = 0.5 + 0.1 * (realmIndex - enemyRealmIndex)
-        successChance = Math.max(0.2, Math.min(0.8, successChance))
-        const win = Math.random() < successChance
-        if (win) {
-          const gain = 100 + Math.floor(Math.random() * 2901)
-          setState((s) => ({
-            ...s,
-            spiritStones: (s.spiritStones ?? 0) + gain,
-          }))
-          appendRegionLog(regionId, `你在连续探索中与一名「${enemyRealmName}」修士交手，胜出后夺得 ${gain} 枚灵石。`)
-        } else {
-          setState((s) => {
-            const cur = s.spiritStones ?? 0
-            const loss = Math.floor(cur / 2)
-            return {
-              ...s,
-              spiritStones: cur - loss,
-            }
-          })
-          appendRegionLog(regionId, `你在连续探索中遭遇一名「${enemyRealmName}」修士，不敌之下被夺去一半灵石。`)
-        }
-        return
-      }
-      setPendingBandit({ regionId, enemyRealmIndex, enemyRealmName })
+      pushPendingBandit({
+        id: `encounter_bandit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        regionId,
+        enemyRealmIndex,
+        enemyRealmName,
+      })
       appendRegionLog(
         regionId,
-        `你在${regionName}山道间行走时，被一名「${enemyRealmName}」修士拦住去路，冷声索要灵石。`,
+        interactive
+          ? `你在${regionName}山道间行走时，被一名「${enemyRealmName}」修士拦住去路，冷声索要灵石。`
+          : `你在连续探索中撞见一名「${enemyRealmName}」修士拦路，已将其记入下方待处理事件。`,
       )
-      return
+      return { stopBatch: !interactive }
     }
     const sect = getRandomSectForRegion(regionId)
     if (!sect) {
       appendRegionLog(regionId, `你在${regionName}四处游历，却一无所获。`)
-      return
+      return { stopBatch: false }
     }
     pushDiscoveredSect(sect, regionId, interactive ? 'interactive' : 'batch')
-  }, [appendRegionLog, joinedSect, realmIndex, pushDiscoveredSect])
+    return { stopBatch: !interactive }
+  }, [appendRegionLog, realmIndex, layer, pushDiscoveredSect, pushPendingBeast, pushPendingBandit])
 
   const handleExploreRegion = useCallback((regionId) => {
     const now = Date.now()
@@ -884,12 +1054,24 @@ function App() {
       appendRegionLog(regionId, `你想在${regionName}连续探索十次，却发现本小时的探索次数已经耗尽。`)
       return
     }
-    const actualRuns = Math.min(10, available)
-    setExploreUsed(baseUsed + actualRuns)
-    appendRegionLog(regionId, `你在${REGION_NAME_MAP[regionId] ?? '此地'}凝神搜山，连续探索了 ${actualRuns} 次。`)
-    for (let i = 0; i < actualRuns; i += 1) {
-      processExploreEvent(regionId, { interactive: false })
+    const maxRuns = Math.min(10, available)
+    let actualRuns = 0
+    let interrupted = false
+    for (let i = 0; i < maxRuns; i += 1) {
+      actualRuns += 1
+      const result = processExploreEvent(regionId, { interactive: false })
+      if (result?.stopBatch) {
+        interrupted = true
+        break
+      }
     }
+    setExploreUsed(baseUsed + actualRuns)
+    appendRegionLog(
+      regionId,
+      interrupted
+        ? `你在${REGION_NAME_MAP[regionId] ?? '此地'}凝神搜山，连续探索了 ${actualRuns} 次后，因撞见需要亲自抉择的事件而停下脚步。`
+        : `你在${REGION_NAME_MAP[regionId] ?? '此地'}凝神搜山，连续探索了 ${actualRuns} 次。`,
+    )
   }, [appendRegionLog, exploreWindowStart, exploreUsed, exploreExtra, processExploreEvent])
 
   const handleDismissSect = useCallback((sectId) => {
@@ -900,9 +1082,9 @@ function App() {
     }
   }, [appendRegionLog, currentRegionId])
 
-  const resolveBanditFight = useCallback((winFromEscape = false) => {
-    if (!pendingBandit) return
-    const { enemyRealmIndex, enemyRealmName } = pendingBandit
+  const resolveBanditFight = useCallback((bandit, winFromEscape = false) => {
+    if (!bandit) return
+    const { enemyRealmIndex, enemyRealmName, id: banditId } = bandit
     const playerRealm = realmIndex
     let successChance = 0.5 + 0.1 * (playerRealm - enemyRealmIndex)
     successChance = Math.max(0.2, Math.min(0.8, successChance))
@@ -933,12 +1115,12 @@ function App() {
         `你不敌这名「${enemyRealmName}」修士，被迫交出一半随身灵石后才得以脱身。`,
       )
     }
-    setPendingBandit(null)
-  }, [appendRegionLog, currentRegionId, pendingBandit, realmIndex])
+    setPendingBandits((prev) => prev.filter((item) => item.id !== banditId))
+  }, [appendRegionLog, currentRegionId, realmIndex])
 
-  const handleBanditFight = useCallback(() => {
-    if (!pendingBandit || !currentRegionId) return
-    const { enemyRealmIndex, enemyRealmName } = pendingBandit
+  const handleBanditFight = useCallback((bandit) => {
+    if (!bandit || !currentRegionId) return
+    const { enemyRealmIndex, enemyRealmName, id: banditId } = bandit
     // 敌方基础属性按其境界计算，再加少量随机浮动
     const enemyLayer = Math.min(getRealmLayerCount(enemyRealmIndex), layer + 1)
     const enemyBaseAttack = getAttack(enemyRealmIndex, enemyLayer, 0)
@@ -962,28 +1144,91 @@ function App() {
 
     setBattleState({
       source: 'bandit',
+      banditId,
       enemyName: `拦路修士（${enemyRealmName}）`,
       enemyAttack,
       enemyHpMax,
       enemyHp: enemyHpMax,
       enemySpeed,
       playerAttack: attack,
+      playerSpecialKillChance,
       playerHpMax,
       playerHp: playerHpMax,
       playerSpeed,
+      playerBeast: activeBeast,
+      playerBeastAttack: activeBeast?.attack ?? 0,
+      beastSkillUsed: false,
+      enemyStunned: false,
+      enemyConfused: false,
+      reviveUsed: false,
+      shieldAvailable: activeBeast?.passiveSkill?.type === 'shieldOnce',
       turn: firstTurn,
       finished: false,
       winner: null,
-      log: [`你与一名「${enemyRealmName}」修士交战，战斗开始！`],
+      log: activeBeast?.passiveSkill?.effect
+        ? [`你与一名「${enemyRealmName}」修士交战，战斗开始！`, `上阵异兽「${activeBeast.name}」的被动技能发动：${activeBeast.passiveSkill.effect}`]
+        : [`你与一名「${enemyRealmName}」修士交战，战斗开始！`],
     })
-  }, [pendingBandit, currentRegionId, attack, hp, speed, layer])
+  }, [currentRegionId, attack, hp, speed, layer, playerSpecialKillChance, activeBeast])
+
+  const handleBeastFight = useCallback((beastEntry) => {
+    if (!beastEntry || !currentRegionId) return
+    const beast = beastEntry.beast
+    if (!beast) return
+    const enemyAttack = Math.max(10, Math.floor(beast.attack * 0.92))
+    const enemyHpMax = Math.max(80, Math.floor(getHp(beast.realmIndex, beast.layer) * (0.78 + Math.random() * 0.26)))
+    const enemySpeed = Math.max(5, Math.floor(getSpeed(beast.realmIndex, beast.layer) * (0.85 + Math.random() * 0.2)))
+    const playerHpMax = hp
+    const playerSpeed = speed
+    const firstTurn = playerSpeed >= enemySpeed ? 'player' : 'enemy'
+    const battleLog = [`你与「${beast.realmName}」的${beast.name}正面交锋，兽吼震林。`]
+    if (activeBeast?.passiveSkill?.effect) {
+      battleLog.push(`上阵异兽「${activeBeast.name}」的被动技能发动：${activeBeast.passiveSkill.effect}`)
+    }
+
+    setBattleState({
+      source: 'beast',
+      beastEncounterId: beastEntry.id,
+      beastId: beast.id,
+      beastData: beast,
+      enemyName: `${beast.name}（${beast.realmName}）`,
+      enemyAttack,
+      enemyHpMax,
+      enemyHp: enemyHpMax,
+      enemySpeed,
+      playerAttack: attack,
+      playerSpecialKillChance,
+      playerHpMax,
+      playerHp: playerHpMax,
+      playerSpeed,
+      playerBeast: activeBeast,
+      playerBeastAttack: activeBeast?.attack ?? 0,
+      beastSkillUsed: false,
+      enemyStunned: false,
+      enemyConfused: false,
+      reviveUsed: false,
+      shieldAvailable: activeBeast?.passiveSkill?.type === 'shieldOnce',
+      turn: firstTurn,
+      finished: false,
+      winner: null,
+      log: battleLog,
+    })
+  }, [currentRegionId, hp, speed, attack, playerSpecialKillChance, activeBeast])
+
+  const handleBeastEscape = useCallback((beastEntry) => {
+    if (!beastEntry || !currentRegionId) return
+    const beast = beastEntry.beast
+    appendRegionLog(currentRegionId, `你权衡之后没有贸然动手，转身避开了这头${beast?.name ?? '异兽'}。`)
+    setBattleReward({ type: 'beast_escape', beastName: beast?.name ?? '异兽' })
+    setPendingBeasts((prev) => prev.filter((item) => item.id !== beastEntry.id))
+  }, [currentRegionId, appendRegionLog])
 
   useEffect(() => {
-    if (!pendingBandit) banditPayGuardRef.current = false
-  }, [pendingBandit])
+    if (pendingBandits.length === 0) banditPayGuardRef.current = false
+  }, [pendingBandits])
 
-  const handleBanditPay = useCallback(() => {
-    if (!pendingBandit) return
+  const handleBanditPay = useCallback((bandit) => {
+    if (!bandit) return
     if (banditPayGuardRef.current) return // 防止重复触发，只执行一次
     const cur = spiritStones ?? 0
     if (cur < 1000) {
@@ -994,8 +1239,8 @@ function App() {
       return
     }
     banditPayGuardRef.current = true
-    const { enemyRealmName } = pendingBandit
-    setPendingBandit(null)
+    const { enemyRealmName, id: banditId } = bandit
+    setPendingBandits((prev) => prev.filter((item) => item.id !== banditId))
     appendRegionLog(
       currentRegionId,
       `你咬牙交出一袋 1000 枚灵石，这名「${enemyRealmName}」修士满意离去。`,
@@ -1004,11 +1249,11 @@ function App() {
       ...s,
       spiritStones: (s.spiritStones ?? 0) - 1000,
     }))
-  }, [appendRegionLog, currentRegionId, pendingBandit, spiritStones])
+  }, [appendRegionLog, currentRegionId, spiritStones])
 
-  const handleBanditEscape = useCallback(() => {
-    if (!pendingBandit) return
-    const { enemyRealmIndex, enemyRealmName } = pendingBandit
+  const handleBanditEscape = useCallback((bandit) => {
+    if (!bandit) return
+    const { enemyRealmIndex, enemyRealmName } = bandit
     let escapeChance = 0.8 - 0.07 * enemyRealmIndex
     escapeChance = Math.max(0.25, Math.min(0.9, escapeChance))
     const success = Math.random() < escapeChance
@@ -1017,15 +1262,15 @@ function App() {
         currentRegionId,
         `你施展身法，勉强甩开了这名「${enemyRealmName}」修士的追击，安全脱离险境。`,
       )
-      setPendingBandit(null)
+      setPendingBandits((prev) => prev.filter((item) => item.id !== bandit.id))
       return
     }
     appendRegionLog(
       currentRegionId,
       `你试图逃离，却被这名「${enemyRealmName}」修士死死缠住，被迫迎战！`,
     )
-    handleBanditFight()
-  }, [appendRegionLog, currentRegionId, pendingBandit, handleBanditFight])
+    handleBanditFight(bandit)
+  }, [appendRegionLog, currentRegionId, handleBanditFight])
 
   const handleChallengeSect = useCallback((sect) => {
     if (!sect || !currentRegionId) return
@@ -1060,30 +1305,131 @@ function App() {
       enemyHp: enemyHpMax,
       enemySpeed,
       playerAttack: attack,
+      playerSpecialKillChance,
       playerHpMax,
       playerHp: playerHpMax,
       playerSpeed,
+      playerBeast: activeBeast,
+      playerBeastAttack: activeBeast?.attack ?? 0,
+      beastSkillUsed: false,
+      enemyStunned: false,
+      enemyConfused: false,
+      reviveUsed: false,
+      shieldAvailable: activeBeast?.passiveSkill?.type === 'shieldOnce',
       turn: firstTurn,
       finished: false,
       winner: null,
-      log: [`你与「${sect.name}」门下修士当场切磋，四周观战者渐渐聚拢。`],
+      log: activeBeast?.passiveSkill?.effect
+        ? [`你与「${sect.name}」门下修士当场切磋，四周观战者渐渐聚拢。`, `上阵异兽「${activeBeast.name}」的被动技能发动：${activeBeast.passiveSkill.effect}`]
+        : [`你与「${sect.name}」门下修士当场切磋，四周观战者渐渐聚拢。`],
     })
-  }, [appendRegionLog, attack, currentRegionId, hp, layer, realmIndex, speed])
+  }, [appendRegionLog, attack, currentRegionId, hp, layer, realmIndex, speed, playerSpecialKillChance, activeBeast])
 
   const handleBattleNextTurn = useCallback(() => {
     setBattleState((state) => {
       if (!state || state.finished) return state
       const log = [...(state.log ?? [])]
-      let { playerHp, enemyHp, turn } = state
+      let { playerHp, enemyHp, turn, enemyAttack } = state
+      let beastSkillUsed = state.beastSkillUsed ?? false
+      let playerBeastAttack = state.playerBeastAttack ?? (state.playerBeast?.attack ?? 0)
+      let enemyStunned = state.enemyStunned ?? false
+      let enemyConfused = state.enemyConfused ?? false
+      let reviveUsed = state.reviveUsed ?? false
+      let shieldAvailable = state.shieldAvailable ?? false
+      const enemyHalfHpThreshold = state.enemyHpMax * 0.5
+      const executeBoostActive = state.playerBeast?.passiveSkill?.type === 'executeBoost' && enemyHp <= enemyHalfHpThreshold
+      const playerLowHpBoostActive = state.playerBeast?.passiveSkill?.type === 'lastStand' && playerHp <= state.playerHpMax * 0.3
+      const playerAttackValue = Math.floor(state.playerAttack * (playerLowHpBoostActive ? 1.4 : 1) * (executeBoostActive ? 1.3 : 1))
+
+      if (turn === 'player' && state.playerBeast?.passiveSkill?.type === 'regen') {
+        const healValue = Math.max(1, Math.floor(state.playerHpMax * 0.1))
+        const healedHp = Math.min(state.playerHpMax, playerHp + healValue)
+        const actualHeal = healedHp - playerHp
+        if (actualHeal > 0) {
+          playerHp = healedHp
+          log.push(`上阵异兽「${state.playerBeast.name}」的被动技能「生生不息」发动，你恢复了 ${actualHeal} 点血量。`)
+        }
+      }
 
       if (turn === 'player') {
-        enemyHp = Math.max(0, enemyHp - state.playerAttack)
-        log.push(`你出手攻击，造成 ${state.playerAttack} 伤害。`)
-        turn = 'enemy'
+        const specialKillChance = state.playerSpecialKillChance ?? 0
+        const triggerSpecialKill = specialKillChance > 0 && Math.random() < specialKillChance
+        if (triggerSpecialKill) {
+          enemyHp = 0
+          log.push('极道帝兵震鸣，帝威倾覆而下，你一击将对手当场镇杀。')
+          turn = 'enemy'
+        } else {
+          enemyHp = Math.max(0, enemyHp - playerAttackValue)
+          log.push(`你出手攻击，造成 ${playerAttackValue} 伤害。`)
+          turn = playerBeastAttack > 0 && enemyHp > 0 ? 'beast' : 'enemy'
+        }
+      } else if (turn === 'beast') {
+        if (playerBeastAttack > 0) {
+          const executeBoostForBeast = state.playerBeast?.passiveSkill?.type === 'executeBoost' && enemyHp <= enemyHalfHpThreshold
+          const beastDamage = Math.floor(playerBeastAttack * (executeBoostForBeast ? 1.3 : 1))
+          const actualDamage = Math.min(enemyHp, beastDamage)
+          enemyHp = Math.max(0, enemyHp - beastDamage)
+          log.push(`上阵异兽「${state.playerBeast.name}」紧随其后发起追击，造成 ${beastDamage} 伤害。`)
+          turn = 'enemy'
+
+          switch (state.playerBeast?.activeSkill?.type) {
+            case 'devour': {
+              const heal = Math.max(1, Math.floor(actualDamage * 0.5))
+              playerHp = Math.min(state.playerHpMax, playerHp + heal)
+              log.push(`主动技能「${state.playerBeast.activeSkill.name}」发动，你恢复了 ${heal} 点血量。`)
+              break
+            }
+            case 'stun':
+              if (Math.random() < 0.3) {
+                enemyStunned = true
+                log.push(`主动技能「${state.playerBeast.activeSkill.name}」发动，对方被眩晕一回合。`)
+              }
+              break
+            case 'rampage':
+              playerBeastAttack = Math.max(1, Math.floor(playerBeastAttack * 1.2))
+              log.push(`主动技能「${state.playerBeast.activeSkill.name}」发动，异兽攻击提升至 ${playerBeastAttack}。`)
+              break
+            case 'confuse':
+              if (Math.random() < 0.1) {
+                enemyConfused = true
+                log.push(`主动技能「${state.playerBeast.activeSkill.name}」发动，对方下次出手将反噬自身。`)
+              }
+              break
+            case 'chain':
+              if (enemyHp > 0 && Math.random() < 0.4) {
+                log.push(`主动技能「${state.playerBeast.activeSkill.name}」发动，异兽再次行动。`)
+                turn = 'beast'
+                break
+              }
+              break
+            default:
+              break
+          }
+        }
       } else {
-        playerHp = Math.max(0, playerHp - state.enemyAttack)
-        log.push(`对方出手攻击，造成 ${state.enemyAttack} 伤害。`)
-        turn = 'player'
+        if (enemyStunned) {
+          enemyStunned = false
+          log.push('对方被眩晕压制，这一回合无法行动。')
+          turn = 'player'
+        } else if (enemyConfused) {
+          enemyConfused = false
+          enemyHp = Math.max(0, enemyHp - state.enemyAttack)
+          log.push(`对方神魂错乱，一击反噬自身，造成 ${state.enemyAttack} 伤害。`)
+          turn = 'player'
+        } else if (shieldAvailable) {
+          shieldAvailable = false
+          log.push(`上阵异兽「${state.playerBeast?.name ?? '异兽'}」的被动技能「无敌金身」发动，本次伤害被完全化解。`)
+          turn = 'player'
+        } else {
+          playerHp = Math.max(0, playerHp - state.enemyAttack)
+          log.push(`对方出手攻击，造成 ${state.enemyAttack} 伤害。`)
+          if (playerHp <= 0 && state.playerBeast?.passiveSkill?.type === 'reviveOnce' && !reviveUsed) {
+            reviveUsed = true
+            playerHp = Math.max(1, Math.floor(state.playerHpMax * 0.1))
+            log.push(`上阵异兽「${state.playerBeast.name}」的被动技能「枯树逢春」发动，你自死境中复苏，恢复了 ${playerHp} 点血量。`)
+          }
+          turn = 'player'
+        }
       }
 
       let finished = false
@@ -1106,6 +1452,13 @@ function App() {
         ...state,
         playerHp,
         enemyHp,
+        enemyAttack,
+        beastSkillUsed,
+        playerBeastAttack,
+        enemyStunned,
+        enemyConfused,
+        reviveUsed,
+        shieldAvailable,
         turn,
         finished,
         winner,
@@ -1115,8 +1468,12 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!battleState || !battleState.finished || battleState.source !== 'bandit' || !pendingBandit || !currentRegionId) return
-
+    if (!battleState || !battleState.finished || battleState.source !== 'bandit' || !currentRegionId) return
+    const pendingBandit = pendingBandits.find((item) => item.id === battleState.banditId)
+    if (!pendingBandit) {
+      setBattleState(null)
+      return
+    }
     const { enemyRealmName, enemyRealmIndex } = pendingBandit
     if (battleState.winner === 'player' || battleState.winner === 'draw') {
       const rewardStones = 200 * (enemyRealmIndex + 1)
@@ -1149,8 +1506,8 @@ function App() {
       )
     }
     setBattleState(null)
-    setPendingBandit(null)
-  }, [battleState, pendingBandit, currentRegionId, appendRegionLog])
+    setPendingBandits((prev) => prev.filter((item) => item.id !== pendingBandit.id))
+  }, [battleState, pendingBandits, currentRegionId, appendRegionLog, spiritStones])
 
   useEffect(() => {
     if (!battleState || !battleState.finished || battleState.source !== 'sect' || !currentRegionId) return
@@ -1170,6 +1527,40 @@ function App() {
     }
     setBattleState(null)
   }, [battleState, currentRegionId, pendingSects, appendRegionLog])
+
+  useEffect(() => {
+    if (!battleState || !battleState.finished || battleState.source !== 'beast' || !currentRegionId) return
+    const pendingBeast = pendingBeasts.find((item) => item.id === battleState.beastEncounterId)
+    const beast = pendingBeast?.beast ?? battleState.beastData
+    if (!beast) return
+    const currentOwnedBeasts = normalizeBeastArray(beastInventory, MAX_BEAST_STORAGE).length + normalizeBeastArray(activeBeasts, 1).length
+
+    if (battleState.winner === 'player' || battleState.winner === 'draw') {
+      appendRegionLog(currentRegionId, `你击败了「${beast.realmName}」的${beast.name}。`)
+      if (Math.random() < 0.5) {
+        if (currentOwnedBeasts < MAX_BEAST_STORAGE) {
+          const capturedBeast = tameBeast(beast)
+          setState((s) => ({
+            ...s,
+            beastInventory: [...normalizeBeastArray(s.beastInventory, MAX_BEAST_STORAGE), capturedBeast].slice(0, MAX_BEAST_STORAGE),
+          }))
+          setBattleReward({ type: 'capture', beastName: beast.name })
+          appendRegionLog(currentRegionId, `捕获成功，这头${beast.name}在重创后终于低头，已送入异兽园。`)
+        } else {
+          appendRegionLog(currentRegionId, `你本已压制住${beast.name}，可异兽园已满，最终无法继续收容。`)
+        }
+      } else {
+        appendRegionLog(currentRegionId, `你本想趁势收服${beast.name}，却还是让它挣脱遁走。`)
+      }
+    } else if (battleState.winner === 'enemy') {
+      appendRegionLog(currentRegionId, `你不敌这头${beast.name}，只得带伤退走，眼看它重新没入荒野。`)
+      setBattleReward({ type: 'beast_lose', beastName: beast.name })
+    }
+    setBattleState(null)
+    if (pendingBeast) {
+      setPendingBeasts((prev) => prev.filter((item) => item.id !== pendingBeast.id))
+    }
+  }, [battleState, currentRegionId, pendingBeasts, appendRegionLog, beastInventory, activeBeasts])
 
   const handleJoinSect = useCallback((sect) => {
     if (!sect) return
@@ -1228,11 +1619,12 @@ function App() {
       if (contrib < cost) return s
       if (type === 'technique') {
         const learned = s.learnedTechs ?? []
-        if (learned.includes(id)) return s
+        const available = s.availableTechs ?? INITIAL_AVAILABLE_TECHNIQUES
+        if (learned.includes(id) || available.includes(id)) return s
         return {
           ...s,
           sectContribution: contrib - cost,
-          learnedTechs: [...learned, id],
+          availableTechs: [...available, id],
         }
       }
       if (type === 'weapon' || type === 'armor') {
@@ -1262,43 +1654,20 @@ function App() {
     setExploreExtra((v) => v + 1)
   }, [appendRegionLog])
 
-  const handleLearnTechnique = useCallback((techId) => {
+  const handleContemplateTechnique = useCallback((techId) => {
     setState((s) => {
-      const learned = s.learnedTechs ?? []
-      if (learned.includes(techId)) return s
       const available = s.availableTechs ?? INITIAL_AVAILABLE_TECHNIQUES
       if (!available.includes(techId)) return s
-      return {
-        ...s,
-        learnedTechs: [...learned, techId],
-        techniqueMastery: { ...(s.techniqueMastery ?? {}), [techId]: s.techniqueMastery?.[techId] ?? 0 },
-      }
-    })
-  }, [])
-
-  const handlePracticeTechnique = useCallback((techId) => {
-    setState((s) => {
       const learned = s.learnedTechs ?? []
-      if (!learned.includes(techId)) return s
+      const learnedSet = new Set(learned)
+      const currentExp = s.techniqueMastery?.[techId] ?? 0
+      if (currentExp >= TECHNIQUE_MAX_MASTERY_EXP) return s
       return {
         ...s,
+        learnedTechs: learnedSet.has(techId) ? learned : [...learned, techId],
         techniqueMastery: {
           ...(s.techniqueMastery ?? {}),
-          [techId]: (s.techniqueMastery?.[techId] ?? 0) + 1,
-        },
-      }
-    })
-  }, [])
-
-  const handleInsightTechnique = useCallback((techId) => {
-    setState((s) => {
-      const learned = s.learnedTechs ?? []
-      if (!learned.includes(techId)) return s
-      return {
-        ...s,
-        techniqueMastery: {
-          ...(s.techniqueMastery ?? {}),
-          [techId]: (s.techniqueMastery?.[techId] ?? 0) + 3,
+          [techId]: Math.min(TECHNIQUE_MAX_MASTERY_EXP, currentExp + 1),
         },
       }
     })
@@ -1349,7 +1718,20 @@ function App() {
       const stones = s.spiritStones ?? 0
       if (stones < price) return s
       const item = getItemById(itemId)
+      const tech = getTechniqueById(itemId)
       const nextShop = (s.shopItems ?? []).filter((id) => id !== itemId)
+      if (tech) {
+        const available = s.availableTechs ?? INITIAL_AVAILABLE_TECHNIQUES
+        if (available.includes(itemId)) {
+          return { ...s, shopItems: nextShop }
+        }
+        return {
+          ...s,
+          spiritStones: stones - (price || getTechniqueBuyPrice(itemId)),
+          availableTechs: [...available, itemId],
+          shopItems: nextShop,
+        }
+      }
       if (item?.type === ITEM_TYPES.MATERIAL) {
         return {
           ...s,
@@ -1416,6 +1798,42 @@ function App() {
 
   const handleStartNewCharacter = useCallback(() => {
     setCreationDraft(getDefaultCharacterProfile())
+  }, [])
+
+  const handleDeployBeast = useCallback((beast) => {
+    if (!beast) return
+    setState((s) => ({
+      ...s,
+      activeBeasts: [beast],
+      beastInventory: normalizeBeastArray(s.beastInventory, MAX_BEAST_STORAGE)
+        .filter((item) => item?.id !== beast.id)
+        .concat((normalizeBeastArray(s.activeBeasts, 1)[0] ? [normalizeBeastArray(s.activeBeasts, 1)[0]] : []))
+        .slice(0, MAX_BEAST_STORAGE),
+    }))
+  }, [])
+
+  const handleUndeployBeast = useCallback(() => {
+    setState((s) => {
+      const activeBeast = normalizeBeastArray(s.activeBeasts, 1)[0]
+      if (!activeBeast) return s
+      const currentBag = normalizeBeastArray(s.beastInventory, MAX_BEAST_STORAGE)
+      if (currentBag.length >= MAX_BEAST_STORAGE) {
+        return s
+      }
+      return {
+        ...s,
+        activeBeasts: [],
+        beastInventory: [...currentBag, activeBeast].slice(0, MAX_BEAST_STORAGE),
+      }
+    })
+  }, [])
+
+  const handleReleaseBeast = useCallback((beast) => {
+    if (!beast?.id) return
+    setState((s) => ({
+      ...s,
+      beastInventory: normalizeBeastArray(s.beastInventory, MAX_BEAST_STORAGE).filter((item) => item.id !== beast.id),
+    }))
   }, [])
 
   return (
@@ -1489,6 +1907,13 @@ function App() {
           <button
             className="btn-treasure-pavilion"
             style={{ marginTop: '0.5rem' }}
+            onClick={() => setShowBeastGarden(true)}
+          >
+            异兽园
+          </button>
+          <button
+            className="btn-treasure-pavilion"
+            style={{ marginTop: '0.5rem' }}
             onClick={() => setShowDebatePavilion(true)}
           >
             论道阁
@@ -1548,7 +1973,7 @@ function App() {
               duration={CULTIVATION_DURATION_MS / 1000}
             />
 
-            {canBreakthrough && (
+            {canOpenBreakthrough && (
               <button
                 className="btn-breakthrough"
                 onClick={() => setShowBreakthrough(true)}
@@ -1576,12 +2001,6 @@ function App() {
             onUnequipWeapon={handleUnequipWeapon}
             onEquipArmor={handleEquipArmor}
             onUseDirectPill={handleUseDirectPill}
-            onSortInventory={() => {
-              setState((prev) => ({
-                ...prev,
-                inventory: { ...normalizeInventory(prev.inventory) },
-              }))
-            }}
             cuitiUsedCount={cuitiUsedCount}
             xueUsedCount={xueUsedCount}
             shenxingUsedCount={shenxingUsedCount}
@@ -1598,17 +2017,20 @@ function App() {
         nextRealm={
           nextStage
             ? getRealmDisplayName(nextStage.realmIndex, nextStage.layer)
-            : breakthroughLockedByOpportunity
-              ? '需机缘或传承开启'
-              : '已至尽头'
+            : '已至尽头'
         }
         nextRealmIndex={isBigRealmBreak && nextStage ? nextStage.realmIndex : null}
         required={required}
         isBigRealmBreak={isBigRealmBreak}
         successRate={bigRealmSuccessRate}
-        pillBonus={pillBonus}
+        pillBonus={isAscensionBreak ? 0 : (pillBonus + specialAidBonus)}
         failed={breakthroughFailed}
         inventory={inventory}
+        aidOptions={breakthroughAidOptions}
+        aidUsedItemId={currentSpecialBreakBonus?.itemId ?? null}
+        requiresWudaoTeaToBreak={requiresWudaoTeaToBreak}
+        isAscensionBreak={isAscensionBreak}
+        canConfirm={canBreakthrough}
       />
 
       <RedeemCodeModal
@@ -1617,6 +2039,7 @@ function App() {
         onRedeem={handleRedeem}
         onRedeemWeapons={handleRedeemWeapons}
         onRedeemPills={handleRedeemPills}
+        onRedeemItems={handleRedeemItems}
         onRedeemContribution={handleRedeemContribution}
       />
 
@@ -1628,6 +2051,7 @@ function App() {
         shopItems={shopItems ?? []}
         ownedRecipes={ownedRecipes}
         learnedRecipes={learnedRecipes}
+        availableTechs={availableTechs}
         onSell={handleSellItem}
         onBuy={handleBuyItem}
         onForceRefresh={handleShopForceRefresh}
@@ -1640,9 +2064,7 @@ function App() {
         learned={learnedTechs}
         available={availableTechs}
         mastery={techniqueMastery}
-        onLearn={handleLearnTechnique}
-        onPractice={handlePracticeTechnique}
-        onInsight={handleInsightTechnique}
+        onContemplate={handleContemplateTechnique}
       />
 
       <AlchemyRoomModal
@@ -1664,6 +2086,16 @@ function App() {
         onCraft={handleCraft}
       />
 
+      <BeastGardenModal
+        show={showBeastGarden}
+        onClose={() => setShowBeastGarden(false)}
+        activeBeasts={activeBeasts}
+        beastInventory={beastInventory}
+        onDeployBeast={handleDeployBeast}
+        onUndeployBeast={handleUndeployBeast}
+        onReleaseBeast={handleReleaseBeast}
+      />
+
       <WorldMapModal
         show={showWorldMap}
         onClose={() => setShowWorldMap(false)}
@@ -1673,6 +2105,9 @@ function App() {
       <DebatePavilionModal
         show={showDebatePavilion}
         onClose={() => setShowDebatePavilion(false)}
+        debatePoints={debatePoints}
+        onGainDebatePoints={handleGainDebatePoints}
+        onRedeemShopItem={handleRedeemDebateShop}
         onEnterBingyan={() => {
           setShowDebatePavilion(false)
           setShowBingyan(true)
@@ -1700,13 +2135,13 @@ function App() {
               return next
             })
           }
-          setPendingBandit(null)
           setShowWorldMap(true)
         }}
         logs={regionLogs[currentRegionId] ?? []}
         exploreRemaining={Math.max(0, 10 + exploreExtra - exploreUsed)}
         pendingSects={pendingSects.filter((sect) => sect.discoveredRegionId === currentRegionId)}
-        pendingBandit={pendingBandit}
+        pendingBeasts={pendingBeasts.filter((item) => item.regionId === currentRegionId)}
+        pendingBandits={pendingBandits.filter((item) => item.regionId === currentRegionId)}
         onExplore={handleExploreRegion}
         onExploreTen={handleExploreRegionTen}
         onJoinSect={handleJoinSect}
@@ -1716,6 +2151,8 @@ function App() {
         onBanditFight={handleBanditFight}
         onBanditPay={handleBanditPay}
         onBanditEscape={handleBanditEscape}
+        onBeastFight={handleBeastFight}
+        onDismissBeast={handleBeastEscape}
         battleState={battleState}
         onBattleNextTurn={handleBattleNextTurn}
       />
@@ -1800,9 +2237,32 @@ function App() {
       />
 
       {battleReward && (
-        <div className="battle-reward-toast">
-          {battleReward.type === 'win' && <>战斗胜利，获得 {battleReward.stones} 灵石</>}
-          {battleReward.type === 'lose' && <>战斗失败，损失 {battleReward.loss} 灵石</>}
+        <div className="region-confirm-overlay" onClick={() => setBattleReward(null)}>
+          <div className="region-confirm-modal gu-panel" onClick={(e) => e.stopPropagation()}>
+            <h4 className="region-confirm-title">
+              {battleReward.type === 'capture'
+                ? '抓获成功'
+                : battleReward.type === 'win'
+                  ? '战斗胜利'
+                  : battleReward.type === 'beast_escape'
+                    ? '异兽离去'
+                    : battleReward.type === 'beast_lose'
+                      ? '不敌异兽'
+                      : '战斗失败'}
+            </h4>
+            <p className="region-confirm-text">
+              {battleReward.type === 'win' && `你赢下了这一战，获得 ${battleReward.stones} 枚灵石。`}
+              {battleReward.type === 'lose' && `你输掉了这一战，损失 ${battleReward.loss} 枚灵石。`}
+              {battleReward.type === 'capture' && `成功抓获异兽：${battleReward.beastName}`}
+              {battleReward.type === 'beast_escape' && `你放弃了与${battleReward.beastName}交战，对方很快隐没于荒野之中。`}
+              {battleReward.type === 'beast_lose' && `你不敌${battleReward.beastName}，只能暂避锋芒，眼看它重新遁入山野。`}
+            </p>
+            <div className="region-confirm-actions">
+              <button type="button" className="btn-region primary" onClick={() => setBattleReward(null)}>
+                确定
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

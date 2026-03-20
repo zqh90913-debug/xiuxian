@@ -5,6 +5,7 @@
  * 第三层：执事、堂主解锁
  * 层级越高物品越高级，目前仅逻辑，不配置具体物品
  */
+import { ARMOR_IDS_BY_QUALITY, WEAPON_IDS_BY_QUALITY } from './items'
 
 /** 类型 */
 export const SECT_ITEM_TYPES = { TECHNIQUE: 'technique', WEAPON: 'weapon', ARMOR: 'armor' }
@@ -15,6 +16,46 @@ export const SECT_TREASURY_LAYERS = [
   { layerIndex: 2, name: '第二层', minRankIndex: 2, desc: '内门弟子、真传弟子解锁' },
   { layerIndex: 3, name: '第三层', minRankIndex: 4, desc: '执事、堂主解锁' },
 ]
+
+const SECT_SECRET_TECHNIQUES = {
+  东华书院: [{ id: 'shengxian_xinfa', cost: 18000 }],
+  幽冥窟: [{ id: 'huangquan_zhi', cost: 18000 }],
+  东帝圣地: [{ id: 'dongdi_jue', cost: 30000 }],
+  焚沙魔域: [{ id: 'huangsha_putian_jue', cost: 18000 }],
+  定宇府: [{ id: 'bajiu_xuangong', cost: 18000 }],
+  太古圣地: [{ id: 'taigu_yin', cost: 30000 }],
+  古魂殿: [{ id: 'taiyi_hunjue', cost: 18000 }],
+  昆仑宫: [{ id: 'longxiang_bore_gong', cost: 18000 }],
+  山海圣地: [{ id: 'shanhai_jing', cost: 30000 }],
+  素银山脉: [{ id: 'taishang_wangqing_jing', cost: 18000 }],
+  冰碧渊: [{ id: 'bingdi_xinfa', cost: 18000 }],
+  冰月圣地: [{ id: 'beichen_qijian', cost: 30000 }],
+  玄都城: [{ id: 'xuandu_zhi', cost: 18000 }],
+  邪灵教: [{ id: 'hundun_mogong', cost: 18000 }],
+  羲和圣地: [{ id: 'diyin_jue', cost: 30000 }],
+  星辰圣地: [{ id: 'huanyu_xingchen_gong', cost: 30000 }],
+}
+
+function hashString(value = '') {
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 131 + value.charCodeAt(i)) >>> 0
+  }
+  return hash
+}
+
+function pickStableRandomItems(items = [], count, seedKey) {
+  const arr = [...items]
+  let seed = hashString(seedKey)
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    const j = seed % (i + 1)
+    const tmp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = tmp
+  }
+  return arr.slice(0, Math.min(count, arr.length))
+}
 
 /**
  * 当前职位是否可访问该层
@@ -33,9 +74,39 @@ export function canAccessTreasuryLayer(sectRankIndex, minRankIndex) {
  */
 export function getTreasuryItemsForLayer(sect, layerIndex) {
   if (!sect || !layerIndex) return []
-  // 后续可在此按 sect.level 与 layerIndex 返回不同物品，例如：
-  // const key = `${sect.level}_${layerIndex}`; return SECT_LAYER_ITEMS[key] ?? [];
-  return []
+  if (layerIndex === 3) {
+    return (SECT_SECRET_TECHNIQUES[sect.name] ?? []).map((item) => ({
+      type: SECT_ITEM_TYPES.TECHNIQUE,
+      id: item.id,
+      cost: item.cost,
+    }))
+  }
+  if (layerIndex !== 1) return []
+
+  const items = []
+  const pushGroup = (type, ids = [], baseCost) => {
+    ids.forEach((id, index) => {
+      items.push({
+        type,
+        id,
+        cost: baseCost + index * Math.max(40, Math.floor(baseCost * 0.08)),
+      })
+    })
+  }
+
+  if (sect.level >= 1 && sect.level <= 5) {
+    pushGroup(SECT_ITEM_TYPES.WEAPON, WEAPON_IDS_BY_QUALITY[2], 900)
+    pushGroup(SECT_ITEM_TYPES.ARMOR, ARMOR_IDS_BY_QUALITY[2], 960)
+    pushGroup(SECT_ITEM_TYPES.WEAPON, WEAPON_IDS_BY_QUALITY[3], 4200)
+    pushGroup(SECT_ITEM_TYPES.ARMOR, ARMOR_IDS_BY_QUALITY[3], 4600)
+  }
+
+  if (sect.level >= 5) {
+    pushGroup(SECT_ITEM_TYPES.WEAPON, WEAPON_IDS_BY_QUALITY[4], 16000)
+    pushGroup(SECT_ITEM_TYPES.ARMOR, ARMOR_IDS_BY_QUALITY[4], 17500)
+  }
+
+  return pickStableRandomItems(items, 5, `${sect.id}-layer-${layerIndex}`)
 }
 
 /**

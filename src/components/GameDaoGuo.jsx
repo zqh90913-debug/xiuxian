@@ -37,7 +37,12 @@ function setStoredHighScore(v) {
   } catch (_) {}
 }
 
-export default function GameDaoGuo({ onBack }) {
+function getFallbackRewardPoints(score) {
+  if (!score || score <= 0) return 0
+  return Math.min(500, Math.max(1, Math.floor(score / 20)))
+}
+
+export default function GameDaoGuo({ onBack, onSettleScore, getRewardPoints = getFallbackRewardPoints }) {
   const containerRef = useRef(null)
   const engineRef = useRef(null)
   const renderRef = useRef(null)
@@ -51,6 +56,8 @@ export default function GameDaoGuo({ onBack }) {
   const [gameOver, setGameOver] = useState(false)
   const [nextType, setNextType] = useState(0)
   const [currentType, setCurrentType] = useState(0)
+  const settledRef = useRef(false)
+  const rewardPoints = getRewardPoints(score)
 
   const gameOverRef = useRef(false)
 
@@ -66,6 +73,12 @@ export default function GameDaoGuo({ onBack }) {
   useEffect(() => {
     gameOverRef.current = gameOver
   }, [gameOver])
+
+  useEffect(() => {
+    if (!gameOver || settledRef.current) return
+    settledRef.current = true
+    onSettleScore?.(scoreRef.current)
+  }, [gameOver, onSettleScore])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -267,6 +280,7 @@ export default function GameDaoGuo({ onBack }) {
   }, [addScore])
 
   const handleRestart = () => {
+    settledRef.current = false
     gameOverRef.current = false
     setGameOver(false)
     setScore(0)
@@ -325,6 +339,7 @@ export default function GameDaoGuo({ onBack }) {
           <div className="game-daoguo-overlay-inner">
             <p className="game-daoguo-overlay-title">堆过警戒线</p>
             <p className="game-daoguo-overlay-score">得分：{score}</p>
+            <p className="game-daoguo-overlay-score">获得论道点：{rewardPoints}</p>
             {score >= highScore && score > 0 && <p className="game-daoguo-overlay-high">新纪录！</p>}
             <div className="game-daoguo-overlay-actions">
               <button type="button" className="btn-daoguo-again" onClick={handleRestart}>

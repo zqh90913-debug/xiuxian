@@ -187,7 +187,7 @@ const REGION_SECT_CONFIG = {
     [4, '四凶殿', SECT_FACTIONS.EVIL],
     [4, '凌霄殿', SECT_FACTIONS.RIGHTEOUS],
     [4, '暗裳宗', SECT_FACTIONS.EVIL],
-    [5, '鸿盟', SECT_FACTIONS.RIGHTEOUS],
+    [5, '玄都城', SECT_FACTIONS.RIGHTEOUS],
     [5, '邪灵教', SECT_FACTIONS.EVIL],
     [6, '羲和圣地', SECT_FACTIONS.NEUTRAL],
     [6, '星辰圣地', SECT_FACTIONS.NEUTRAL],

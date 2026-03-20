@@ -1,7 +1,7 @@
 /**
- * 装备确认弹窗：法宝显示攻击加成，防具显示血量加成
+ * 装备确认弹窗：法器显示攻击加成，防具显示血量加成
  */
-import { getPillGradeColor, ITEM_TYPES } from '../data/items'
+import { getItemAccentColor, ITEM_TYPES } from '../data/items'
 import EquipmentPortrait from './EquipmentPortrait'
 import './EquipWeaponModal.css'
 
@@ -9,7 +9,7 @@ export default function EquipWeaponModal({ show, item, onClose, onConfirm }) {
   if (!show || !item) return null
 
   const isArmor = item.type === ITEM_TYPES.ARMOR
-  const title = isArmor ? '装备防具' : '装备法宝'
+  const title = isArmor ? '装备防具' : '装备法器'
   const effectText = isArmor
     ? `血量 +${item.hpBonus ?? 0}`
     : `攻击 +${item.attackBonus ?? 0}`
@@ -25,11 +25,12 @@ export default function EquipWeaponModal({ show, item, onClose, onConfirm }) {
         </div>
         <p
           className="weapon-name"
-          style={{ color: getPillGradeColor(item.grade) }}
+          style={{ color: getItemAccentColor(item) }}
         >
           {item.name}
         </p>
         <p className="weapon-effect">{effectText}</p>
+        {item.desc && <p className="weapon-desc">{item.desc}</p>}
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>取消</button>
           <button className="btn-confirm" onClick={onConfirm}>确定装备</button>

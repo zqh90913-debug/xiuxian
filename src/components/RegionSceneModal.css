@@ -310,6 +310,42 @@
   color: var(--ink-muted);
 }
 
+.region-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.56);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 140;
+  padding: 1rem;
+}
+
+.region-confirm-modal {
+  width: min(420px, 100%);
+  padding: 1rem 1.1rem;
+}
+
+.region-confirm-title {
+  margin: 0 0 0.45rem;
+  color: var(--gold);
+  font-size: 1rem;
+}
+
+.region-confirm-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.region-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
 @media (max-width: 720px) {
   .region-content {
     grid-template-columns: 1fr;

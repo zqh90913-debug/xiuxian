@@ -1,7 +1,7 @@
 /**
  * 装备立绘（法器/防具）：根据 itemId 生成差异化 SVG 小图标
  */
-import { getItemById, getPillGradeColor, ITEM_TYPES } from '../data/items'
+import { getItemById, getItemAccentColor, getItemDisplayGradeLabel, ITEM_TYPES } from '../data/items'
 import './EquipmentPortrait.css'
 
 function hashCode(str) {
@@ -73,9 +73,9 @@ export default function EquipmentPortrait({ itemId, className = '' }) {
   const item = getItemById(itemId)
   if (!item) return null
 
-  const color = getPillGradeColor(item.grade)
+  const color = getItemAccentColor(item)
   const v = hashCode(itemId) % 3
-  const gradeLabel = item.grade != null ? `${item.grade}品` : ''
+  const gradeLabel = getItemDisplayGradeLabel(item)
   const title = item.name ? (gradeLabel ? `${item.name}（${gradeLabel}）` : item.name) : itemId
 
   return (
@@ -92,4 +92,3 @@ export default function EquipmentPortrait({ itemId, className = '' }) {
     </div>
   )
 }
-

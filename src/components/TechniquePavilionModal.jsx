@@ -1,13 +1,14 @@
 /**
- * 功法阁：区分已习得 / 已解锁 / 未解锁，并支持修习与感悟提升熟练度
+ * 功法阁：区分已习得 / 已解锁 / 未解锁，并通过感悟读条提升熟练度
  */
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   getTechniqueById,
   getTechniqueEffectiveBonuses,
   getTechniqueMasteryExp,
   getTechniqueMasteryStageById,
   getTechniqueNextMasteryStage,
+  TECHNIQUE_MAX_MASTERY_EXP,
   TECHNIQUES,
   TECH_TIERS,
 } from '../data/techniques'
@@ -15,19 +16,34 @@ import './TechniquePavilionModal.css'
 
 const TIER_ORDER = Object.fromEntries(TECH_TIERS.map((tier, index) => [tier, index]))
 const sortByTier = (a, b) => (TIER_ORDER[b.tier] - TIER_ORDER[a.tier]) || a.name.localeCompare(b.name, 'zh-CN')
+const CONTEMPLATE_DURATION_MS = {
+  '凡品': 30_000,
+  '黄品': 30_000,
+  '玄品': 30_000,
+  '地品': 60_000,
+  '天品': 300_000,
+}
+
+function formatContemplateDuration(ms) {
+  if (ms >= 60_000) return `${Math.round(ms / 60_000)}分钟`
+  return `${Math.round(ms / 1000)}秒`
+}
 
 function TechniqueCard({
   tech,
   mastery,
   mode,
-  onLearn,
-  onPractice,
-  onInsight,
+  onContemplate,
+  contemplatingTechId,
+  contemplateProgress = 0,
 }) {
   const exp = getTechniqueMasteryExp(mastery, tech.id)
   const masteryStage = getTechniqueMasteryStageById(mastery, tech.id)
   const nextStage = getTechniqueNextMasteryStage(exp)
   const bonuses = getTechniqueEffectiveBonuses(tech, exp)
+  const isContemplating = contemplatingTechId === tech.id
+  const isMasteryMaxed = exp >= TECHNIQUE_MAX_MASTERY_EXP
+  const durationText = formatContemplateDuration(CONTEMPLATE_DURATION_MS[tech.tier] ?? 30_000)
 
   return (
     <div className={`tech-card ${mode !== 'locked' ? 'selectable' : ''}`}>
@@ -40,50 +56,91 @@ function TechniqueCard({
         <span className="tech-badge">{tech.tier}</span>
       </div>
 
-      <p className="tech-desc">{tech.desc}</p>
+      <div className="tech-card-body">
+        <p className="tech-desc">{tech.desc}</p>
 
-      {mode === 'learned' && (
-        <>
-          <div className="tech-mastery-block">
-            <div className="tech-mastery-row">
-              <span>熟练度</span>
-              <span>{masteryStage.label}</span>
+        <div className="tech-card-middle">
+          {mode === 'learned' ? (
+            <>
+              <div className="tech-mastery-block">
+                <div className="tech-mastery-row">
+                  <span>熟练度</span>
+                  <span>{masteryStage.label}</span>
+                </div>
+                <div className="tech-mastery-row">
+                  <span>当前感悟</span>
+                  <span>{exp}</span>
+                </div>
+                <div className="tech-mastery-row">
+                  <span>下一阶段</span>
+                  <span>{nextStage ? `${nextStage.label}（${nextStage.exp}）` : '已圆满'}</span>
+                </div>
+              </div>
+              <div className="tech-effects">
+                <span>修为+{bonuses.cultivationBonus}</span>
+                <span>攻击+{bonuses.attackBonus}</span>
+                <span>血量+{bonuses.hpBonus}</span>
+                <span>速度+{bonuses.speedBonus}</span>
+              </div>
+            </>
+          ) : (
+            <div className="tech-card-placeholder" aria-hidden="true">
+              <div className="tech-mastery-block tech-mastery-block-placeholder" />
+              <div className="tech-effects tech-effects-placeholder" />
             </div>
-            <div className="tech-mastery-row">
-              <span>当前感悟</span>
-              <span>{exp}</span>
-            </div>
-            <div className="tech-mastery-row">
-              <span>下一阶段</span>
-              <span>{nextStage ? `${nextStage.label}（${nextStage.exp}）` : '已圆满'}</span>
-            </div>
-          </div>
-          <div className="tech-effects">
-            <span>修为+{bonuses.cultivationBonus}</span>
-            <span>攻击+{bonuses.attackBonus}</span>
-            <span>血量+{bonuses.hpBonus}</span>
-            <span>速度+{bonuses.speedBonus}</span>
-          </div>
-          <div className="tech-actions-row">
-            <button type="button" className="btn-practice" onClick={() => onPractice?.(tech.id)}>修习</button>
-            <button type="button" className="btn-insight" onClick={() => onInsight?.(tech.id)}>感悟</button>
-          </div>
-        </>
-      )}
-
-      {mode === 'unlocked' && (
-        <div className="tech-actions-row">
-          <button type="button" className="btn-learn" onClick={() => onLearn?.(tech)}>
-            学习
-          </button>
+          )}
         </div>
-      )}
 
-      {mode === 'locked' && (
-        <div className="tech-locked-footer">
-          <span className="tech-lock-state">未解锁</span>
+        <div className="tech-card-footer">
+          {mode === 'learned' && (
+            <>
+              <div className="tech-actions-row">
+                <button
+                  type="button"
+                  className="btn-insight"
+                  disabled={Boolean(contemplatingTechId) || isMasteryMaxed}
+                  onClick={() => onContemplate?.(tech)}
+                >
+                  {isContemplating ? '感悟中...' : isMasteryMaxed ? '已圆满' : `感悟（${durationText}）`}
+                </button>
+              </div>
+              {isContemplating && (
+                <div className="tech-progress-wrap">
+                  <div className="tech-progress-bar" style={{ width: `${contemplateProgress * 100}%` }} />
+                  <span className="tech-progress-text">感悟中 {Math.round(contemplateProgress * 100)}%</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {mode === 'unlocked' && (
+            <>
+              <div className="tech-actions-row">
+                <button
+                  type="button"
+                  className="btn-learn"
+                  disabled={Boolean(contemplatingTechId)}
+                  onClick={() => onContemplate?.(tech)}
+                >
+                  {isContemplating ? '感悟中...' : `感悟入门（${durationText}）`}
+                </button>
+              </div>
+              {isContemplating && (
+                <div className="tech-progress-wrap">
+                  <div className="tech-progress-bar" style={{ width: `${contemplateProgress * 100}%` }} />
+                  <span className="tech-progress-text">感悟中 {Math.round(contemplateProgress * 100)}%</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {mode === 'locked' && (
+            <div className="tech-locked-footer">
+              <span className="tech-lock-state">未解锁</span>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -94,22 +151,49 @@ export default function TechniquePavilionModal({
   learned = [],
   available = [],
   mastery = {},
-  onLearn,
-  onPractice,
-  onInsight,
+  onContemplate,
 }) {
-  const [techToLearn, setTechToLearn] = useState(null)
+  const [techToContemplate, setTechToContemplate] = useState(null)
   const [activeTier, setActiveTier] = useState(TECH_TIERS[0])
+  const [contemplatingTechId, setContemplatingTechId] = useState(null)
+  const [contemplateProgress, setContemplateProgress] = useState(0)
 
-  if (!show) return null
+  useEffect(() => {
+    if (!show) {
+      setTechToContemplate(null)
+      setContemplatingTechId(null)
+      setContemplateProgress(0)
+    }
+  }, [show])
+
+  useEffect(() => {
+    if (!show) return undefined
+    if (!contemplatingTechId) return undefined
+    const tech = TECHNIQUES[contemplatingTechId]
+    const duration = CONTEMPLATE_DURATION_MS[tech?.tier] ?? 30_000
+    const startedAt = Date.now()
+    const timer = window.setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / duration)
+      setContemplateProgress(progress)
+      if (progress >= 1) {
+        window.clearInterval(timer)
+        onContemplate?.(contemplatingTechId)
+        setContemplatingTechId(null)
+        setContemplateProgress(0)
+      }
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [show, contemplatingTechId, onContemplate])
 
   const learnedSet = new Set(learned)
   const availableSet = new Set(available)
-  const allTechs = Object.values(TECHNIQUES).sort(sortByTier)
+  const allTechs = useMemo(() => Object.values(TECHNIQUES).sort(sortByTier), [])
   const tierTechs = allTechs.filter((tech) => tech.tier === activeTier)
   const learnedTechs = tierTechs.filter((tech) => learnedSet.has(tech.id))
   const unlockedTechs = tierTechs.filter((tech) => availableSet.has(tech.id) && !learnedSet.has(tech.id))
   const lockedTechs = tierTechs.filter((tech) => !availableSet.has(tech.id) && !learnedSet.has(tech.id))
+
+  if (!show) return null
 
   return (
     <div className="tech-modal-overlay">
@@ -144,8 +228,9 @@ export default function TechniquePavilionModal({
                   tech={tech}
                   mastery={mastery}
                   mode="learned"
-                  onPractice={onPractice}
-                  onInsight={onInsight}
+                  onContemplate={setTechToContemplate}
+                  contemplatingTechId={contemplatingTechId}
+                  contemplateProgress={contemplateProgress}
                 />
               ))}
             </div>
@@ -164,14 +249,16 @@ export default function TechniquePavilionModal({
                   tech={tech}
                   mastery={mastery}
                   mode="unlocked"
-                  onLearn={setTechToLearn}
+                  onContemplate={setTechToContemplate}
+                  contemplatingTechId={contemplatingTechId}
+                  contemplateProgress={contemplateProgress}
                 />
               ))}
             </div>
           )}
         </div>
 
-        <div className="tech-section gu-panel">
+        <div className="tech-section tech-section-scroll gu-panel">
           <h4>{activeTier} · 未解锁典籍</h4>
           {lockedTechs.length === 0 ? (
             <div className="tech-empty">该品级下暂无未解锁典籍。</div>
@@ -189,25 +276,32 @@ export default function TechniquePavilionModal({
           )}
         </div>
 
-        {techToLearn && (
-          <div className="tech-learn-confirm gu-panel">
-            <p className="tech-learn-prompt">确定学习《{techToLearn.name}》吗？</p>
+      </div>
+
+      {techToContemplate && (
+        <div className="tech-confirm-overlay" onClick={() => setTechToContemplate(null)}>
+          <div className="tech-confirm-modal gu-panel" onClick={(e) => e.stopPropagation()}>
+            <p className="tech-learn-prompt">
+              确定感悟《{techToContemplate.name}》吗？
+              {!learnedSet.has(techToContemplate.id) ? ' 感悟完成后将列入已习得功法。' : ' 感悟完成后会提升熟练度。'}
+            </p>
             <div className="tech-learn-actions">
-              <button type="button" className="btn-cancel" onClick={() => setTechToLearn(null)}>取消</button>
+              <button type="button" className="btn-cancel" onClick={() => setTechToContemplate(null)}>取消</button>
               <button
                 type="button"
                 className="btn-confirm-learn"
                 onClick={() => {
-                  onLearn?.(techToLearn.id)
-                  setTechToLearn(null)
+                  setContemplatingTechId(techToContemplate.id)
+                  setContemplateProgress(0)
+                  setTechToContemplate(null)
                 }}
               >
-                确定学习
+                开始感悟
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 /**
  * 道合归一：2048 小游戏，上下左右移动合并，无法移动时结算得分
  */
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import './Game2048.css'
 
 const SIZE = 4
@@ -136,7 +136,12 @@ function canMove(grid) {
   return false
 }
 
-export default function Game2048({ onBack }) {
+function getFallbackRewardPoints(score) {
+  if (!score || score <= 0) return 0
+  return Math.min(500, Math.max(1, Math.floor(score / 20)))
+}
+
+export default function Game2048({ onBack, onSettleScore, getRewardPoints = getFallbackRewardPoints }) {
   const [grid, setGrid] = useState(() => {
     let g = spawnTile(spawnTile(createEmptyGrid()))
     return g
@@ -146,6 +151,8 @@ export default function Game2048({ onBack }) {
   const [gameOver, setGameOver] = useState(false)
   const [spawnIndex, setSpawnIndex] = useState(null)
   const [mergeIndices, setMergeIndices] = useState([])
+  const settledRef = useRef(false)
+  const rewardPoints = getRewardPoints(score)
 
   const handleMove = useCallback(
     (dir) => {
@@ -192,6 +199,12 @@ export default function Game2048({ onBack }) {
   }, [grid, score, highScore])
 
   useEffect(() => {
+    if (!gameOver || settledRef.current) return
+    settledRef.current = true
+    onSettleScore?.(score)
+  }, [gameOver, score, onSettleScore])
+
+  useEffect(() => {
     const onKeyDown = (e) => {
       if (gameOver) return
       switch (e.key) {
@@ -220,6 +233,7 @@ export default function Game2048({ onBack }) {
   }, [handleMove, gameOver])
 
   const handleRestart = () => {
+    settledRef.current = false
     setGrid(spawnTile(spawnTile(createEmptyGrid())))
     setScore(0)
     setGameOver(false)
@@ -253,6 +267,7 @@ export default function Game2048({ onBack }) {
           <div className="game2048-overlay-inner">
             <p className="game2048-overlay-title">无法继续移动</p>
             <p className="game2048-overlay-score">最终得分：{score}</p>
+            <p className="game2048-overlay-score">获得论道点：{rewardPoints}</p>
             {score >= highScore && score > 0 && (
               <p className="game2048-overlay-high">新纪录！</p>
             )}
