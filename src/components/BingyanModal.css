@@ -1,369 +1,60 @@
-.bingyan-overlay {
+/* 兵演全屏：内嵌演武页（图鉴 + 战斗） */
+.bingyan-gacha-root.bingyan-overlay {
   position: fixed;
   inset: 0;
-  background: var(--app-bg, #1b120a);
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  padding: 0;
-  z-index: 115;
-}
-
-.bingyan-modal {
-  width: 100%;
-  height: 100vh;
-  background: var(--wood-dark);
+  z-index: 12000;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  background: rgba(8, 4, 12, 0.92);
+  backdrop-filter: blur(6px);
 }
 
-.bingyan-header {
+.bingyan-gacha-bar {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin: 10px 12px 0;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(20, 12, 28, 0.85);
 }
 
-.bingyan-header h3 {
-  font-family: 'Ma Shan Zheng', cursive;
-  font-size: 1.3rem;
-  color: var(--gold);
+.bingyan-gacha-title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #e8dcc8;
+  letter-spacing: 0.06em;
 }
 
-.bingyan-turn-info {
-  font-size: 0.9rem;
-  color: var(--ink-muted);
+.bingyan-gacha-hint {
+  font-size: 0.82rem;
+  color: rgba(232, 220, 200, 0.65);
   margin-left: auto;
 }
 
-.btn-bingyan-back {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.85rem;
-  background: var(--btn-bg);
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.bingyan-content {
-  flex: 1;
-  padding: 0.75rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.bingyan-placeholder {
-  align-items: center;
-  justify-content: center;
-}
-
-.bingyan-placeholder-text {
-  font-size: 1rem;
-  color: var(--ink-muted);
-  margin: 0;
-}
-
-.bingyan-section-title {
-  font-size: 0.95rem;
-  color: var(--ink-muted);
-  margin-bottom: 0.5rem;
-}
-
-.bingyan-faction-select {
-  padding: 0.8rem 1rem;
-}
-
-.bingyan-faction-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.8rem;
-  max-width: 480px;
-}
-
-.bingyan-faction-btn {
-  --faction-color: #888;
-  --faction-dark: #333;
-  padding: 1rem;
-  background: linear-gradient(180deg, var(--faction-color), var(--faction-dark));
-  border: 2px solid rgba(255, 255, 255, 0.2);
+.btn-bingyan-gacha-back {
+  padding: 6px 14px;
   border-radius: 8px;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(40, 24, 48, 0.9);
+  color: #e8dcc8;
   cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.12s;
-}
-
-.bingyan-faction-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.bingyan-faction-name {
-  font-size: 1.1rem;
-  font-weight: bold;
-}
-
-.bingyan-faction-desc {
-  font-size: 0.8rem;
-  opacity: 0.9;
-}
-
-.bingyan-rule-hint {
-  font-size: 0.85rem;
-  color: var(--ink-muted);
-  line-height: 1.5;
-  margin-bottom: 0.75rem;
-  max-width: 520px;
-}
-
-.bingyan-start-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1.2rem;
-  font-size: 1rem;
-  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.bingyan-daoxin-board {
-  padding: 1rem;
-}
-
-.bingyan-daoxin-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.25rem 0;
-}
-
-.bingyan-daoxin-label {
   font-size: 0.9rem;
-  color: var(--ink-muted);
 }
 
-.bingyan-daoxin-value {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: var(--gold);
+.btn-bingyan-gacha-back:hover {
+  border-color: rgba(255, 215, 120, 0.55);
+  background: rgba(55, 32, 62, 0.95);
 }
 
-.bingyan-reveal-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin: 0.75rem 0;
-}
-
-.bingyan-reveal-card {
-  min-width: 80px;
-  min-height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bingyan-no-play {
-  font-size: 0.85rem;
-  color: var(--ink-muted);
-}
-
-.bingyan-vs {
-  font-size: 1rem;
-  color: var(--gold);
-}
-
-.bingyan-round-result-text {
-  font-size: 0.9rem;
-  color: var(--ink);
-  margin: 0.5rem 0;
-}
-
-.bingyan-choose-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.bingyan-skip-btn {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.85rem;
-  background: var(--btn-bg);
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.bingyan-skip-btn.selected {
-  border-color: var(--gold);
-  background: rgba(201, 162, 39, 0.2);
-}
-
-.bingyan-confirm-play {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.9rem;
-  background: linear-gradient(180deg, var(--gold-dim), var(--red-dim));
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.bingyan-next-round-btn {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.9rem;
-  background: var(--btn-bg);
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-}
-
-.bingyan-board {
-  padding: 0.6rem 1rem;
-}
-
-.bingyan-opponent-side .bingyan-minions,
-.bingyan-player-side .bingyan-minions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  min-height: 60px;
-  padding: 0.35rem 0;
-}
-
-.bingyan-leader-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.bingyan-leader-box {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.bingyan-hp-num {
-  font-size: 0.95rem;
-  font-weight: bold;
-  color: var(--gold);
-}
-
-.bingyan-minion-wrap {
-  display: inline-block;
-}
-
-.bingyan-hand {
-  padding: 0.8rem 1rem;
-  margin-top: auto;
-}
-
-.bingyan-actions-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.bingyan-phase-btn,
-.bingyan-end-turn {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.85rem;
-  background: var(--btn-bg);
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.bingyan-phase-btn:disabled,
-.bingyan-end-turn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.bingyan-end-turn {
-  background: rgba(201, 162, 39, 0.25);
-  border-color: var(--gold);
-}
-
-.bingyan-message {
-  font-size: 0.85rem;
-  color: var(--ink-muted);
-  margin: 0 0 0.5rem 0;
-}
-
-.bingyan-hand-cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.bingyan-play-hint,
-.bingyan-attack-target {
-  margin-top: 0.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.9rem;
-  color: var(--ink-muted);
-}
-
-.bingyan-do-play,
-.bingyan-target-btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
-  background: rgba(201, 162, 39, 0.3);
-  color: var(--ink);
-  border: 1px solid var(--gold);
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.bingyan-do-play:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.bingyan-game-over {
-  padding: 1.5rem;
-  text-align: center;
-}
-
-.bingyan-game-result {
-  font-size: 1.2rem;
-  color: var(--gold);
-  margin-bottom: 1rem;
-}
-
-.bingyan-game-over-actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.bingyan-again-btn {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.95rem;
-  background: var(--btn-bg);
-  color: var(--ink);
-  border: 1px solid var(--slot-border);
-  border-radius: 2px;
-  cursor: pointer;
+.bingyan-gacha-iframe {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  border-radius: 0 0 8px 8px;
+  background: #070a12;
 }

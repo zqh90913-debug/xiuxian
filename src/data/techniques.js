@@ -26,6 +26,15 @@ export const TECHNIQUE_MASTERY_STAGES = [
 
 export const TECHNIQUE_MAX_MASTERY_EXP = TECHNIQUE_MASTERY_STAGES[TECHNIQUE_MASTERY_STAGES.length - 1].exp
 
+/** 功法感悟单次读条时长（毫秒），按典籍品级 */
+export const TECHNIQUE_CONTEMPLATE_DURATION_MS = {
+  凡品: 30_000,
+  黄品: 30_000,
+  玄品: 30_000,
+  地品: 60_000,
+  天品: 300_000,
+}
+
 export const TECH_TIER_PROFILES = {
   '凡品': { baseMultiplier: 1, growthMultiplier: 1 },
   '黄品': { baseMultiplier: 1, growthMultiplier: 1.18 },

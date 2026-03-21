@@ -3,11 +3,11 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import {
-  getTechniqueById,
   getTechniqueEffectiveBonuses,
   getTechniqueMasteryExp,
   getTechniqueMasteryStageById,
   getTechniqueNextMasteryStage,
+  TECHNIQUE_CONTEMPLATE_DURATION_MS,
   TECHNIQUE_MAX_MASTERY_EXP,
   TECHNIQUES,
   TECH_TIERS,
@@ -16,13 +16,6 @@ import './TechniquePavilionModal.css'
 
 const TIER_ORDER = Object.fromEntries(TECH_TIERS.map((tier, index) => [tier, index]))
 const sortByTier = (a, b) => (TIER_ORDER[b.tier] - TIER_ORDER[a.tier]) || a.name.localeCompare(b.name, 'zh-CN')
-const CONTEMPLATE_DURATION_MS = {
-  '凡品': 30_000,
-  '黄品': 30_000,
-  '玄品': 30_000,
-  '地品': 60_000,
-  '天品': 300_000,
-}
 
 function formatContemplateDuration(ms) {
   if (ms >= 60_000) return `${Math.round(ms / 60_000)}分钟`
@@ -43,7 +36,7 @@ function TechniqueCard({
   const bonuses = getTechniqueEffectiveBonuses(tech, exp)
   const isContemplating = contemplatingTechId === tech.id
   const isMasteryMaxed = exp >= TECHNIQUE_MAX_MASTERY_EXP
-  const durationText = formatContemplateDuration(CONTEMPLATE_DURATION_MS[tech.tier] ?? 30_000)
+  const durationText = formatContemplateDuration(TECHNIQUE_CONTEMPLATE_DURATION_MS[tech.tier] ?? 30_000)
 
   return (
     <div className={`tech-card ${mode !== 'locked' ? 'selectable' : ''}`}>
@@ -151,39 +144,19 @@ export default function TechniquePavilionModal({
   learned = [],
   available = [],
   mastery = {},
-  onContemplate,
+  /** 由 App 维护：关闭功法阁后读条仍继续 */
+  contemplatingTechId = null,
+  contemplateProgress = 0,
+  onBeginContemplation,
 }) {
   const [techToContemplate, setTechToContemplate] = useState(null)
   const [activeTier, setActiveTier] = useState(TECH_TIERS[0])
-  const [contemplatingTechId, setContemplatingTechId] = useState(null)
-  const [contemplateProgress, setContemplateProgress] = useState(0)
 
   useEffect(() => {
     if (!show) {
       setTechToContemplate(null)
-      setContemplatingTechId(null)
-      setContemplateProgress(0)
     }
   }, [show])
-
-  useEffect(() => {
-    if (!show) return undefined
-    if (!contemplatingTechId) return undefined
-    const tech = TECHNIQUES[contemplatingTechId]
-    const duration = CONTEMPLATE_DURATION_MS[tech?.tier] ?? 30_000
-    const startedAt = Date.now()
-    const timer = window.setInterval(() => {
-      const progress = Math.min(1, (Date.now() - startedAt) / duration)
-      setContemplateProgress(progress)
-      if (progress >= 1) {
-        window.clearInterval(timer)
-        onContemplate?.(contemplatingTechId)
-        setContemplatingTechId(null)
-        setContemplateProgress(0)
-      }
-    }, 100)
-    return () => window.clearInterval(timer)
-  }, [show, contemplatingTechId, onContemplate])
 
   const learnedSet = new Set(learned)
   const availableSet = new Set(available)
@@ -291,8 +264,7 @@ export default function TechniquePavilionModal({
                 type="button"
                 className="btn-confirm-learn"
                 onClick={() => {
-                  setContemplatingTechId(techToContemplate.id)
-                  setContemplateProgress(0)
+                  onBeginContemplation?.(techToContemplate)
                   setTechToContemplate(null)
                 }}
               >

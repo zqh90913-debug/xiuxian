@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>兵演 · 演武</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body class="bingyan-embed">
+    <div class="app">
+      <header class="header">
+        <div>
+          <div class="title">抽卡模拟器</div>
+          <div class="subtitle">
+            概率：<b>3★ 80%</b> / <b>4★ 17%</b> / <b>5★ 3%</b>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="btnSingle" class="btn primary">单次抽卡</button>
+          <button id="btnTen" class="btn">10 连抽卡</button>
+          <button id="btnClear" class="btn ghost" title="清空展示与统计">清空</button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="stats">
+          <div class="stat">
+            <div class="statLabel">总抽数</div>
+            <div id="statTotal" class="statValue">0</div>
+          </div>
+          <div class="stat three">
+            <div class="statLabel">3★</div>
+            <div id="stat3" class="statValue">0</div>
+          </div>
+          <div class="stat four">
+            <div class="statLabel">4★</div>
+            <div id="stat4" class="statValue">0</div>
+          </div>
+          <div class="stat five">
+            <div class="statLabel">5★</div>
+            <div id="stat5" class="statValue">0</div>
+          </div>
+        </div>
+
+        <div class="hint" id="hint">
+          点击“单次抽卡”或“10连抽卡”开始。卡面图片来自公开网络 URL（仅演示用）。
+        </div>
+      </section>
+
+      <main class="grid" id="resultsGrid" aria-live="polite"></main>
+
+      <footer class="footer"></footer>
+    </div>
+
+    <div class="fabGroup">
+      <button id="btnBall" class="fab fabBall" aria-haspopup="dialog" aria-controls="ballModal">
+        弹球
+      </button>
+      <button id="btnBattle" class="fab fabBattle" aria-haspopup="dialog" aria-controls="battleModal">
+        战斗
+      </button>
+      <button id="btnInventory" class="fab" aria-haspopup="dialog" aria-controls="inventoryModal">
+        图鉴
+      </button>
+    </div>
+
+    <div id="battleModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="战斗">
+      <div class="modalOverlay" data-close="battle"></div>
+      <div class="modalPanel battlePanel" role="document">
+        <div class="modalHeader">
+          <div class="modalTitle" id="battleTitle">选择六人上阵（每名角色仅 1 人）</div>
+          <button id="btnBattleClose" class="btn ghost small" data-close="battle">关闭</button>
+        </div>
+        <div class="modalBody battleBody">
+          <div id="battleSelectPhase" class="battlePhase">
+            <div class="battleSelectTop">
+              <div class="battleHint" id="battleDeckHint">已选 0/6 人；下图鉴点姓名上阵，每名角色仅可上阵 1 人</div>
+              <div id="battleDeckList" class="battleDeckList" aria-label="已选队伍"></div>
+              <button id="btnStartBattle" class="btn primary" disabled>开始战斗</button>
+            </div>
+            <div class="invList battleInvList">
+              <div id="battleInvItems" class="invItems" aria-label="图鉴名录"></div>
+            </div>
+          </div>
+          <div id="battleFightPhase" class="battlePhase hidden">
+            <div class="battleFightMain">
+              <div class="battleArena">
+                <div class="battleSide battleEnemy">
+                  <div class="battleSideLabel">敌方</div>
+                  <div id="enemySlots" class="battleSlots battleSlotsRow"></div>
+                </div>
+                <div class="battleSide battlePlayer">
+                  <div class="battleSideLabel">己方</div>
+                  <div id="playerSlots" class="battleSlots battleSlotsRow"></div>
+                </div>
+              </div>
+              <div class="battleTopBar" role="toolbar" aria-label="回合操作">
+                <button id="btnBattleNext" type="button" class="btn primary">下一回合</button>
+              </div>
+            </div>
+            <div id="battleSettleOverlay" class="battleSettleOverlay hidden" aria-hidden="true">
+              <div
+                class="battleSettleDialog"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="battleSettleTitle"
+              >
+                <p id="battleSettleTitle" class="battleSettleTitle"></p>
+                <button type="button" id="btnBattleSettleOk" class="btn primary">确定</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ballModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="弹球">
+      <div class="modalOverlay" data-close="ball"></div>
+      <div class="modalPanel ballPanel" role="document">
+        <div class="modalHeader">
+          <div class="modalTitle" id="ballTitle">弹球</div>
+          <button id="btnBallClose" class="btn ghost small" data-close="ball">关闭</button>
+        </div>
+        <div class="modalBody ballBody">
+          <div id="ballSelectPhase" class="ballPhase">
+            <p class="ballHint">选择一张卡面用于游戏中操控（仅外观，无关属性与技能）</p>
+            <div id="ballCardList" class="ballCardList" aria-label="可选卡面"></div>
+            <button id="btnBallNextMode" class="btn primary" disabled>下一步：选择模式</button>
+          </div>
+          <div id="ballModePhase" class="ballPhase hidden">
+            <p class="ballHint">选择游戏模式</p>
+            <div class="ballModeChoice">
+              <button id="btnBallMode60" class="btn">60 秒挑战（坚持 60 秒即胜利）</button>
+              <button id="btnBallModeInfinite" class="btn">无限模式（每 30 秒增加一球，看能坚持多久）</button>
+            </div>
+            <button id="btnBallStart" class="btn primary">开始游戏</button>
+          </div>
+          <div id="ballGamePhase" class="ballPhase hidden">
+            <div id="ballGameArena" class="ballGameArena" tabindex="0">
+              <div class="ballGameTop ballGameTopInside">
+                <span id="ballTimer" class="ballTimer">0.0 秒</span>
+                <span id="ballBallsCount" class="ballBallsCount"></span>
+              </div>
+              <div id="ballGameCard" class="ballGameCard" aria-hidden="true"></div>
+              <div id="ballGameBalls" class="ballGameBalls"></div>
+            </div>
+            <p class="ballControlHint">使用 ↑ ↓ ← → 方向键移动卡面，躲避光球</p>
+            <div id="ballResult" class="ballResult hidden">
+              <div id="ballResultText" class="ballResultText"></div>
+              <button id="btnBallAgain" class="btn primary">再玩一次</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="inventoryModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="图鉴">
+      <div class="modalOverlay" data-close="1"></div>
+      <div class="modalPanel" role="document">
+        <div class="modalHeader">
+          <div class="modalTitle">图鉴</div>
+          <button id="btnInventoryClose" class="btn ghost small" data-close="1">关闭</button>
+        </div>
+
+        <div class="modalBody">
+          <aside class="invList">
+            <div class="invTop">
+              <div class="invHint" id="invHint">图鉴暂无角色。</div>
+            </div>
+            <div id="invItems" class="invItems" aria-label="图鉴名录"></div>
+          </aside>
+
+          <section class="invPreview" aria-label="立绘预览">
+            <div class="previewEmpty" id="previewEmpty">点选左侧名录查阅立绘与神通</div>
+            <div id="previewWrap" class="previewWrap hidden"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

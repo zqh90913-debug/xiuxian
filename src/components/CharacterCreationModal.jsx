@@ -247,7 +247,7 @@ export default function CharacterCreationModal({ show, draft, onChange, onConfir
               <div className="creation-preview-portrait creation-portrait-placeholder">立绘待添加</div>
             </div>
             <h3 className="creation-preview-title">当前命格</h3>
-            <div className="creation-preview-row">
+            <div className="creation-preview-row creation-preview-row-highlight">
               <span>姓名</span>
               <span>{draft.name || '未定'}</span>
             </div>
@@ -255,7 +255,7 @@ export default function CharacterCreationModal({ show, draft, onChange, onConfir
               <span>性别</span>
               <span>{selected.gender.label}</span>
             </div>
-            <div className="creation-preview-row">
+            <div className="creation-preview-row creation-preview-row-highlight">
               <span>灵根</span>
               <span>{selected.spiritRoot.label}</span>
             </div>

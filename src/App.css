@@ -77,6 +77,38 @@
   margin-top: 0.2rem;
 }
 
+/* 顶栏：姓名、灵根加衬底，避免在背景图上发虚 */
+.header-character-identity {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  max-width: 100%;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.header-char-pill {
+  padding: 0.22rem 0.55rem;
+  background: rgba(14, 10, 7, 0.82);
+  border: 1px solid rgba(201, 162, 39, 0.32);
+  border-radius: 5px;
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.header-char-plain {
+  color: var(--ink-muted);
+}
+
+.header-char-dot {
+  color: var(--ink-muted);
+  opacity: 0.85;
+  user-select: none;
+}
+
 .main {
   display: grid;
   grid-template-columns: 80px 1fr 420px;

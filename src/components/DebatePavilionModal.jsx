@@ -7,7 +7,7 @@ import GameDaoGuo from './GameDaoGuo'
 import './DebatePavilionModal.css'
 
 const MODES = [
-  { id: 'bingyan', name: '兵演', desc: '道心争锋：每回合与对方各出一张牌，按品级与三才（天克地、地克人、人克天）结算道心伤害，道心归零即败。' },
+  { id: 'bingyan', name: '兵演', desc: '演武幻境：查阅图鉴立绘与神通，编队六人上阵（每名角色仅 1 人），敌方随机编队亦不重复；回合制战斗与敌方 AI。' },
   { id: 'daheguiyi', name: '道合归一', desc: '气韵推演：以方向挪移格中数字，相同则合一，直至无法再动，以得分论高下。' },
   { id: 'daoguoxianghe', name: '道果相合', desc: '灵物落下，移动控制落点、点击放下。相同灵物相触即合一，逐级合成至道果；堆过红线即败，以得分论高下。' },
 ]

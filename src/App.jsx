@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   REALMS,
   getCultivationGain,
@@ -29,7 +29,16 @@ import BingyanModal from './components/BingyanModal'
 import RegionSceneModal from './components/RegionSceneModal'
 import SectModal from './components/SectModal'
 import { REGIONS, REGION_NAME_MAP, getRandomSectForRegion, SECT_RANKS } from './data/sects'
-import { INITIAL_AVAILABLE_TECHNIQUES, SHOP_TECHNIQUE_IDS, TECHNIQUE_MAX_MASTERY_EXP, getTechniqueById, getTechniqueEffectiveBonuses, getTechniqueMasteryExp, getTechniqueBuyPrice } from './data/techniques'
+import {
+  INITIAL_AVAILABLE_TECHNIQUES,
+  SHOP_TECHNIQUE_IDS,
+  TECHNIQUE_CONTEMPLATE_DURATION_MS,
+  TECHNIQUE_MAX_MASTERY_EXP,
+  getTechniqueById,
+  getTechniqueEffectiveBonuses,
+  getTechniqueMasteryExp,
+  getTechniqueBuyPrice,
+} from './data/techniques'
 import {
   INITIAL_OWNED_RECIPES,
   INITIAL_OWNED_FURNACES,
@@ -75,20 +84,30 @@ function pickRandomWeapons(count) {
   return shuffled.slice(0, Math.min(count, WEAPON_IDS.length))
 }
 
+/** 法器槽：无效 id、非「法器」类型一律视为空槽（避免存档里占位导致界面像空槽却装不上） */
 function normalizeEquipmentWeapons(w) {
-  const arr = [...(w ?? []), ...Array(4).fill(null)].slice(0, 4)
+  const base = Array.isArray(w) ? w : []
+  const arr = [...base, ...Array(4).fill(null)].slice(0, 4)
   return arr.map((slot) => {
-    if (!slot) return null
-    if (slot?.itemId) return { itemId: slot.itemId }
+    if (slot == null) return null
+    const id = slot.itemId ?? slot.id
+    if (!id) return null
+    const it = getItemById(id)
+    if (it?.type === ITEM_TYPES.WEAPON) return { itemId: id }
     return null
   })
 }
 
+/** 防具槽：同上，只保留合法防具 */
 function normalizeEquipmentArmors(a) {
-  const arr = [...(a ?? []), ...Array(4).fill(null)].slice(0, 4)
+  const base = Array.isArray(a) ? a : []
+  const arr = [...base, ...Array(4).fill(null)].slice(0, 4)
   return arr.map((slot) => {
-    if (!slot) return null
-    if (slot?.itemId) return { itemId: slot.itemId }
+    if (slot == null) return null
+    const id = slot.itemId ?? slot.id
+    if (!id) return null
+    const it = getItemById(id)
+    if (it?.type === ITEM_TYPES.ARMOR) return { itemId: id }
     return null
   })
 }
@@ -303,6 +322,9 @@ function App() {
   const [showTreasurePavilion, setShowTreasurePavilion] = useState(false)
   const [showRedeemCode, setShowRedeemCode] = useState(false)
   const [showTechniquePavilion, setShowTechniquePavilion] = useState(false)
+  /** 功法感悟读条在 App 层运行，关闭功法阁界面后仍继续 */
+  const [techniqueContemplation, setTechniqueContemplation] = useState(null)
+  const [contemplationTick, setContemplationTick] = useState(0)
   const [showAlchemyRoom, setShowAlchemyRoom] = useState(false)
   const [showBeastGarden, setShowBeastGarden] = useState(false)
   const [showWorldMap, setShowWorldMap] = useState(false)
@@ -318,6 +340,8 @@ function App() {
   const [pendingBandits, setPendingBandits] = useState([])
   const [pendingBeasts, setPendingBeasts] = useState([])
   const banditPayGuardRef = useRef(false)
+  /** 用户在开屏点了「重新创建角色」后，确认建角应整档重置，不能只改人物档案 */
+  const pendingNewGameAfterCreationRef = useRef(false)
   const [breakthroughFailed, setBreakthroughFailed] = useState(false)
   const [lastGain, setLastGain] = useState(0)
   const [autoCultivate, setAutoCultivate] = useState(() => {
@@ -631,11 +655,13 @@ function App() {
   }, [])
 
   const handleEquipWeapon = useCallback((itemId, slotIndex) => {
+    const itemMeta = getItemById(itemId)
+    if (!itemMeta || itemMeta.type !== ITEM_TYPES.WEAPON) return
     setState((s) => {
       const inv = s.inventory ?? {}
-      const cur = inv[itemId] ?? 0
+      const cur = Math.max(0, Math.floor(Number(inv[itemId] ?? 0)))
       if (cur < 1) return s
-      const weapons = [...(s.equipment?.weapons ?? Array(4).fill(null))]
+      const weapons = [...normalizeEquipmentWeapons(s.equipment?.weapons)]
       if (slotIndex >= 0 && slotIndex < 4) {
         const old = weapons[slotIndex]?.itemId
         const newInv = { ...inv }
@@ -649,7 +675,7 @@ function App() {
           equipment: { ...s.equipment, weapons },
         }
       }
-      const idx = weapons.findIndex((x) => !x)
+      const idx = weapons.findIndex((x) => x == null || !x?.itemId)
       if (idx < 0) return s
       const newInv = { ...inv }
       newInv[itemId] = (newInv[itemId] ?? 0) - 1
@@ -665,7 +691,7 @@ function App() {
 
   const handleUnequipWeapon = useCallback((slotIndex) => {
     setState((s) => {
-      const weapons = [...(s.equipment?.weapons ?? [])]
+      const weapons = [...normalizeEquipmentWeapons(s.equipment?.weapons)]
       const slot = weapons[slotIndex]
       if (!slot?.itemId) return s
       const itemId = slot.itemId
@@ -679,11 +705,13 @@ function App() {
   }, [])
 
   const handleEquipArmor = useCallback((itemId, slotIndex) => {
+    const itemMeta = getItemById(itemId)
+    if (!itemMeta || itemMeta.type !== ITEM_TYPES.ARMOR) return
     setState((s) => {
       const inv = s.inventory ?? {}
-      const cur = inv[itemId] ?? 0
+      const cur = Math.max(0, Math.floor(Number(inv[itemId] ?? 0)))
       if (cur < 1) return s
-      const armors = [...(s.equipment?.armors ?? Array(4).fill(null))]
+      const armors = [...normalizeEquipmentArmors(s.equipment?.armors)]
       if (slotIndex >= 0 && slotIndex < 4) {
         const old = armors[slotIndex]?.itemId
         const newInv = { ...inv }
@@ -697,7 +725,7 @@ function App() {
           equipment: { ...s.equipment, armors },
         }
       }
-      const idx = armors.findIndex((x) => !x)
+      const idx = armors.findIndex((x) => x == null || !x?.itemId)
       if (idx < 0) return s
       const newInv = { ...inv }
       newInv[itemId] = (newInv[itemId] ?? 0) - 1
@@ -713,7 +741,7 @@ function App() {
 
   const handleUnequipArmor = useCallback((slotIndex) => {
     setState((s) => {
-      const armors = [...(s.equipment?.armors ?? [])]
+      const armors = [...normalizeEquipmentArmors(s.equipment?.armors)]
       const slot = armors[slotIndex]
       if (!slot?.itemId) return s
       const itemId = slot.itemId
@@ -1547,9 +1575,11 @@ function App() {
           setBattleReward({ type: 'capture', beastName: beast.name })
           appendRegionLog(currentRegionId, `捕获成功，这头${beast.name}在重创后终于低头，已送入异兽园。`)
         } else {
+          setBattleReward({ type: 'beast_bag_full', beastName: beast.name })
           appendRegionLog(currentRegionId, `你本已压制住${beast.name}，可异兽园已满，最终无法继续收容。`)
         }
       } else {
+        setBattleReward({ type: 'beast_fled_after_win', beastName: beast.name })
         appendRegionLog(currentRegionId, `你本想趁势收服${beast.name}，却还是让它挣脱遁走。`)
       }
     } else if (battleState.winner === 'enemy') {
@@ -1673,6 +1703,37 @@ function App() {
     })
   }, [])
 
+  const handleBeginTechniqueContemplation = useCallback((tech) => {
+    if (!tech?.id) return
+    setTechniqueContemplation((cur) => {
+      if (cur) return cur
+      const durationMs = TECHNIQUE_CONTEMPLATE_DURATION_MS[tech.tier] ?? 30_000
+      return { techId: tech.id, startedAt: Date.now(), durationMs }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!techniqueContemplation) return undefined
+    const { techId, startedAt, durationMs } = techniqueContemplation
+    const id = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt
+      if (elapsed >= durationMs) {
+        window.clearInterval(id)
+        handleContemplateTechnique(techId)
+        setTechniqueContemplation(null)
+      } else {
+        setContemplationTick((n) => n + 1)
+      }
+    }, 100)
+    return () => window.clearInterval(id)
+  }, [techniqueContemplation, handleContemplateTechnique])
+
+  const techniqueContemplatingTechId = techniqueContemplation?.techId ?? null
+  const techniqueContemplateProgress = useMemo(() => {
+    if (!techniqueContemplation) return 0
+    return Math.min(1, (Date.now() - techniqueContemplation.startedAt) / techniqueContemplation.durationMs)
+  }, [techniqueContemplation, contemplationTick])
+
   const handleUseRecipe = useCallback((recipeId) => {
     setState((s) => {
       const owned = s.ownedRecipes ?? []
@@ -1784,12 +1845,17 @@ function App() {
 
   const handleCreateCharacter = useCallback(() => {
     const normalizedProfile = normalizeCharacterProfile(creationDraft)
+    const forceNewGame = pendingNewGameAfterCreationRef.current
+    if (forceNewGame) pendingNewGameAfterCreationRef.current = false
+    let didFullReset = false
     setState((prev) => {
-      if (!isFreshRunState(prev)) {
-        return { ...prev, characterProfile: normalizedProfile }
+      if (forceNewGame || isFreshRunState(prev)) {
+        didFullReset = true
+        return buildCharacterState(normalizedProfile)
       }
-      return buildCharacterState(normalizedProfile)
+      return { ...prev, characterProfile: normalizedProfile }
     })
+    if (didFullReset) setTechniqueContemplation(null)
     setShowCharacterCreation(false)
     setShowCharacterStats(false)
     setShowLoadModal(false)
@@ -1797,6 +1863,7 @@ function App() {
   }, [creationDraft])
 
   const handleStartNewCharacter = useCallback(() => {
+    pendingNewGameAfterCreationRef.current = true
     setCreationDraft(getDefaultCharacterProfile())
   }, [])
 
@@ -1845,11 +1912,17 @@ function App() {
         </div>
         <div className="header-center">
           <h1>修仙传</h1>
-          <p className="subtitle">
-            {characterProfile
-              ? `${characterProfile.name} · ${selection.gender.label} · ${selection.spiritRoot.label}`
-              : '问道长生'}
-          </p>
+          {characterProfile ? (
+            <div className="header-character-identity" role="text">
+              <span className="header-char-pill">{characterProfile.name}</span>
+              <span className="header-char-dot">·</span>
+              <span className="header-char-plain">{selection.gender.label}</span>
+              <span className="header-char-dot">·</span>
+              <span className="header-char-pill">{selection.spiritRoot.label}</span>
+            </div>
+          ) : (
+            <p className="subtitle">问道长生</p>
+          )}
         </div>
       </header>
       <SaveSlotModal
@@ -1868,6 +1941,8 @@ function App() {
         onLoad={(index) => {
           const loaded = loadFromSlot(index)
           if (loaded) {
+            pendingNewGameAfterCreationRef.current = false
+            setTechniqueContemplation(null)
             setState(loaded)
             setShowCharacterCreation(!loaded.characterProfile)
           }
@@ -2064,7 +2139,9 @@ function App() {
         learned={learnedTechs}
         available={availableTechs}
         mastery={techniqueMastery}
-        onContemplate={handleContemplateTechnique}
+        contemplatingTechId={techniqueContemplatingTechId}
+        contemplateProgress={techniqueContemplateProgress}
+        onBeginContemplation={handleBeginTechniqueContemplation}
       />
 
       <AlchemyRoomModal
@@ -2245,16 +2322,22 @@ function App() {
                 : battleReward.type === 'win'
                   ? '战斗胜利'
                   : battleReward.type === 'beast_escape'
-                    ? '异兽离去'
-                    : battleReward.type === 'beast_lose'
-                      ? '不敌异兽'
-                      : '战斗失败'}
+                    ? '避开异兽'
+                    : battleReward.type === 'beast_fled_after_win'
+                      ? '异兽逃脱'
+                      : battleReward.type === 'beast_bag_full'
+                        ? '异兽园已满'
+                        : battleReward.type === 'beast_lose'
+                          ? '不敌异兽'
+                          : '战斗失败'}
             </h4>
             <p className="region-confirm-text">
               {battleReward.type === 'win' && `你赢下了这一战，获得 ${battleReward.stones} 枚灵石。`}
               {battleReward.type === 'lose' && `你输掉了这一战，损失 ${battleReward.loss} 枚灵石。`}
               {battleReward.type === 'capture' && `成功抓获异兽：${battleReward.beastName}`}
-              {battleReward.type === 'beast_escape' && `你放弃了与${battleReward.beastName}交战，对方很快隐没于荒野之中。`}
+              {battleReward.type === 'beast_escape' && `你未与${battleReward.beastName}交手便抽身离去，对方很快隐没于荒野之中。`}
+              {battleReward.type === 'beast_fled_after_win' && `你已击败${battleReward.beastName}，但收服未果，它带伤挣脱后遁入山林。`}
+              {battleReward.type === 'beast_bag_full' && `你已击败${battleReward.beastName}，但异兽园位置已满，无法收容，只得任其离去。`}
               {battleReward.type === 'beast_lose' && `你不敌${battleReward.beastName}，只能暂避锋芒，眼看它重新遁入山野。`}
             </p>
             <div className="region-confirm-actions">
